@@ -266,50 +266,50 @@ function HeroOrbitDeck() {
 
   return (
     <div className='relative w-full bg-background text-foreground overflow-hidden'>
-      <div className='scale-75 origin-top' style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}>
+      <div className='md:origin-top md:scale-75' style={{ transformOrigin: 'top center' }}>
         <section
           ref={sectionRef}
-          className={`relative flex w-full flex-col gap-16 px-6 py-24 transition-opacity duration-700 md:gap-20 md:px-10 lg:px-16 xl:px-24 ${
+          className={`relative flex w-full flex-col gap-6 px-4 py-8 transition-opacity duration-700 md:gap-16 md:px-6 md:py-24 lg:gap-20 lg:px-10 xl:px-16 2xl:px-24 ${
             visible ? 'motion-safe:animate-[hero3-intro_1s_cubic-bezier(.22,.68,0,1)_forwards]' : 'opacity-0'
           }`}
         >
-        <header className='grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)] lg:items-end'>
-          <div className='space-y-8'>
-            <div className='flex flex-wrap items-center gap-4'>
+        <header className='grid gap-6 md:gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)] lg:items-end'>
+          <div className='space-y-4 md:space-y-8'>
+            <div className='flex flex-wrap items-center gap-2 md:gap-4'>
               <span
-                className={`inline-flex items-center gap-2 rounded-full border px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.4em] ${palette.border} ${palette.accent}`}
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.3em] md:tracking-[0.4em] ${palette.border} ${palette.accent}`}
               >
                 DCAi Neuro-Engine
               </span>
             </div>
-            <div className='space-y-6'>
-              <h1 className='text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl'>
+            <div className='space-y-3 md:space-y-6'>
+              <h1 className='text-xl font-semibold leading-[1.1] tracking-tight sm:text-2xl md:text-4xl lg:text-5xl xl:text-6xl'>
                 Dollar Cost Averaging, reimagined by AI for MultiversX.
               </h1>
-              <p className={`max-w-2xl text-base md:text-lg ${palette.subtle}`}>
+              <p className={`text-xs md:text-base lg:text-lg leading-relaxed ${palette.subtle}`}>
                 DCAi watches MultiversX markets 24/7, learns from on-chain volatility and liquidity patterns, and
                 drip-feeds your capital into tokens at AI-optimized moments—then takes profit before the crowd even
                 reacts. No emotion, no timing anxiety, just systematic accumulation powered by machine intelligence.
               </p>
             </div>
-            <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+            <div className='flex flex-col gap-3'>
               <div
-                className={`inline-flex flex-wrap gap-3 rounded-full border px-5 py-3 text-xs uppercase tracking-[0.3em] transition ${palette.border} ${palette.accent}`}
+                className={`inline-flex flex-wrap gap-2 rounded-full border px-3 py-2 md:px-5 md:py-3 text-[10px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.3em] transition ${palette.border} ${palette.accent}`}
               >
-                <span className='flex items-center gap-2'>
-                  <span className='h-1.5 w-1.5 rounded-full bg-current animate-pulse' />
+                <span className='flex items-center gap-1.5 md:gap-2'>
+                  <span className='h-1 w-1 md:h-1.5 md:w-1.5 rounded-full bg-current animate-pulse' />
                   AI Active
                 </span>
                 <span className='opacity-60'>∙</span>
                 <span>MultiversX Native</span>
               </div>
               <div
-                className={`flex divide-x divide-[hsl(var(--gray-300)/0.2)] overflow-hidden rounded-full border text-xs uppercase tracking-[0.35em] ${palette.border}`}
+                className={`flex divide-x divide-[hsl(var(--gray-300)/0.2)] overflow-hidden rounded-full border text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.35em] ${palette.border}`}
               >
                 {metrics.map((metric) => (
-                  <div key={metric.label} className='flex flex-col px-5 py-3'>
-                    <span className={`text-[11px] ${palette.subtle}`}>{metric.label}</span>
-                    <span className='text-lg font-semibold tracking-tight'>{metric.value}</span>
+                  <div key={metric.label} className='flex flex-col px-3 py-2 md:px-5 md:py-3'>
+                    <span className={`text-[9px] md:text-[11px] ${palette.subtle}`}>{metric.label}</span>
+                    <span className='text-sm md:text-lg font-semibold tracking-tight'>{metric.value}</span>
                   </div>
                 ))}
               </div>
@@ -317,21 +317,23 @@ function HeroOrbitDeck() {
           </div>
 
           <div
-            className={`relative flex flex-col gap-6 rounded-3xl border p-8 transition ${palette.border} ${palette.card}`}
+            className={`relative flex flex-col gap-4 md:gap-6 rounded-2xl md:rounded-3xl border p-4 md:p-8 transition ${palette.border} ${palette.card}`}
           >
-            <div className='flex items-start justify-between gap-4'>
-              <div className='space-y-3'>
-                <p className='text-xs uppercase tracking-[0.35em]'>Mode</p>
-                <h2 className='text-xl font-semibold tracking-tight'>{activeMode.title}</h2>
+            <div className='flex items-start justify-between gap-3 md:gap-4'>
+              <div className='space-y-2 md:space-y-3'>
+                <p className='text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.35em]'>Mode</p>
+                <h2 className='text-lg md:text-xl font-semibold tracking-tight'>{activeMode.title}</h2>
               </div>
-              <DeckGlyph />
+              <div className='hidden md:block'>
+                <DeckGlyph />
+              </div>
             </div>
-            <p className={`text-sm leading-relaxed ${palette.subtle}`}>{activeMode.description}</p>
+            <p className={`text-xs md:text-sm leading-relaxed ${palette.subtle}`}>{activeMode.description}</p>
             <div className='flex gap-2'>
               <button
                 type='button'
                 onClick={() => setMode('strategy')}
-                className={`flex-1 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] transition ${
+                className={`flex-1 rounded-full border px-3 py-1.5 md:px-4 md:py-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.3em] md:tracking-[0.35em] transition ${
                   mode === 'strategy'
                     ? 'bg-[hsl(var(--gray-300)/0.2)] text-foreground'
                     : `${palette.border} ${palette.accent}`
@@ -342,7 +344,7 @@ function HeroOrbitDeck() {
               <button
                 type='button'
                 onClick={() => setMode('execution')}
-                className={`flex-1 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] transition ${
+                className={`flex-1 rounded-full border px-3 py-1.5 md:px-4 md:py-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.3em] md:tracking-[0.35em] transition ${
                   mode === 'execution'
                     ? 'bg-[hsl(var(--gray-300)/0.2)] text-foreground'
                     : `${palette.border} ${palette.accent}`
@@ -351,10 +353,10 @@ function HeroOrbitDeck() {
                 Execution
               </button>
             </div>
-            <ul className='space-y-2 text-sm'>
+            <ul className='space-y-1.5 md:space-y-2 text-xs md:text-sm'>
               {activeMode.items.map((item) => (
-                <li key={item} className={`flex items-start gap-3 ${palette.subtle}`}>
-                  <span className='mt-1 h-2 w-2 rounded-full bg-current' />
+                <li key={item} className={`flex items-start gap-2 md:gap-3 ${palette.subtle}`}>
+                  <span className='mt-0.5 md:mt-1 h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-current flex-shrink-0' />
                   <span>{item}</span>
                 </li>
               ))}
@@ -362,20 +364,20 @@ function HeroOrbitDeck() {
           </div>
         </header>
 
-        <div className='grid gap-10 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,0.9fr)] xl:items-stretch'>
+        <div className='grid gap-4 md:gap-10 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,0.9fr)] xl:items-stretch'>
           <div
-            className={`order-2 flex flex-col gap-6 rounded-3xl border p-8 transition ${palette.border} ${palette.card} xl:order-1`}
+            className={`order-2 flex flex-col gap-4 md:gap-6 rounded-2xl md:rounded-3xl border p-4 md:p-8 transition ${palette.border} ${palette.card} xl:order-1`}
           >
             <div className='flex items-center justify-between'>
-              <h3 className='text-xs uppercase tracking-[0.35em]'>DCA Advantages</h3>
-              <span className='text-xs uppercase tracking-[0.35em] opacity-60'>v3.0</span>
+              <h3 className='text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.35em]'>DCA Advantages</h3>
+              <span className='text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.35em] opacity-60'>v3.0</span>
             </div>
-            <p className={`text-sm leading-relaxed ${palette.subtle}`}>
+            <p className={`text-xs md:text-sm leading-relaxed ${palette.subtle}`}>
               Dollar Cost Averaging reduces the impact of volatility by spreading purchases over time. DCAi enhances
               this with AI-driven timing, ensuring you buy when markets are most favorable, not just on arbitrary
               schedules.
             </p>
-            <div className='grid gap-3'>
+            <div className='grid gap-2 md:gap-3'>
               {[
                 'Eliminate timing anxiety and emotion',
                 'Reduce average entry price over time',
@@ -383,7 +385,7 @@ function HeroOrbitDeck() {
               ].map((item) => (
                 <div
                   key={item}
-                  className={`relative overflow-hidden rounded-2xl border px-4 py-3 text-xs uppercase tracking-[0.3em] transition duration-500 hover:-translate-y-0.5 ${palette.border}`}
+                  className={`relative overflow-hidden rounded-xl md:rounded-2xl border px-3 py-2 md:px-4 md:py-3 text-[10px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.3em] transition duration-500 hover:-translate-y-0.5 ${palette.border}`}
                 >
                   <span>{item}</span>
                   <span
@@ -413,29 +415,29 @@ function HeroOrbitDeck() {
               <span className='pointer-events-none absolute -left-16 top-16 h-40 w-40 rounded-full border border-white/15 opacity-70 motion-safe:animate-[hero3-glow_9s_ease-in-out_infinite]' />
               <span className='pointer-events-none absolute -right-12 bottom-16 h-48 w-48 rounded-full border border-white/10 opacity-40 motion-safe:animate-[hero3-drift_12s_ease-in-out_infinite]' />
             </div>
-            <figcaption className={`flex items-center justify-between px-6 py-5 text-xs uppercase tracking-[0.35em] ${palette.subtle}`}>
+            <figcaption className={`flex items-center justify-between px-3 py-2 md:px-6 md:py-5 text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.35em] ${palette.subtle}`}>
               <span>Market Intelligence</span>
-              <span className='flex items-center gap-2'>
-                <span className='h-1 w-8 bg-current' />
-                AI-Powered Analysis
+              <span className='flex items-center gap-1 md:gap-2'>
+                <span className='h-0.5 w-4 md:h-1 md:w-8 bg-current' />
+                <span className='hidden sm:inline'>AI-Powered Analysis</span>
               </span>
             </figcaption>
           </figure>
 
           <aside
-            className={`order-3 flex flex-col gap-6 rounded-3xl border p-8 transition ${palette.border} ${palette.card} xl:order-3`}
+            className={`order-3 flex flex-col gap-4 md:gap-6 rounded-2xl md:rounded-3xl border p-4 md:p-8 transition ${palette.border} ${palette.card} xl:order-3`}
           >
             <div className='flex items-center justify-between'>
-              <h3 className='text-xs uppercase tracking-[0.35em]'>DCA Workflow</h3>
-              <span className='text-xs uppercase tracking-[0.35em] opacity-60'>Indexed</span>
+              <h3 className='text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.35em]'>DCA Workflow</h3>
+              <span className='text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.35em] opacity-60'>Indexed</span>
             </div>
-            <ul className='space-y-4'>
+            <ul className='space-y-2 md:space-y-4'>
               {protocols.map((protocol, index) => (
                 <li
                   key={protocol.name}
                   onMouseMove={setSpotlight}
                   onMouseLeave={clearSpotlight}
-                  className='group relative overflow-hidden rounded-2xl border px-5 py-4 transition duration-500 hover:-translate-y-0.5'
+                  className='group relative overflow-hidden rounded-xl md:rounded-2xl border px-3 py-2.5 md:px-5 md:py-4 transition duration-500 hover:-translate-y-0.5'
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <div
@@ -446,10 +448,10 @@ function HeroOrbitDeck() {
                     }}
                   />
                   <div className='flex items-center justify-between'>
-                    <h4 className='text-sm font-semibold uppercase tracking-[0.25em]'>{protocol.name}</h4>
-                    <span className='text-[10px] uppercase tracking-[0.35em] opacity-70'>{protocol.status}</span>
+                    <h4 className='text-xs md:text-sm font-semibold uppercase tracking-[0.2em] md:tracking-[0.25em]'>{protocol.name}</h4>
+                    <span className='text-[9px] md:text-[10px] uppercase tracking-[0.3em] md:tracking-[0.35em] opacity-70'>{protocol.status}</span>
                   </div>
-                  <p className={`mt-3 text-sm leading-relaxed ${palette.subtle}`}>{protocol.detail}</p>
+                  <p className={`mt-2 md:mt-3 text-xs md:text-sm leading-relaxed ${palette.subtle}`}>{protocol.detail}</p>
                 </li>
               ))}
             </ul>

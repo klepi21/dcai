@@ -28,7 +28,7 @@ export const ConnectButton = () => {
   return (
     <Button
       onClick={handleClick}
-      className='inline-block rounded-lg px-4 py-2 text-center hover:no-underline my-0 bg-gray-800 text-white hover:bg-gray-700 mr-0 disabled:bg-gray-200 disabled:text-black disabled:cursor-not-allowed transition-colors'
+      className='inline-block rounded-lg px-3 py-2 text-sm text-center hover:no-underline my-0 bg-gray-800 text-white hover:bg-gray-700 mr-0 disabled:bg-gray-200 disabled:text-black disabled:cursor-not-allowed transition-colors whitespace-nowrap'
     >
       Connect
     </Button>

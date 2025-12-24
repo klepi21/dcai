@@ -214,7 +214,7 @@ export default function DCABoard() {
               alt='DCAi staking illustration'
               width={360}
               height={360}
-              className='object-contain'
+              className='object-contain w-[180px] h-[180px] md:w-[360px] md:h-[360px]'
             />
           </div>
         </section>
@@ -534,7 +534,7 @@ export default function DCABoard() {
               alt='DCAi sloth yoga'
               width={180}
               height={180}
-              className='object-contain'
+              className='object-contain w-[90px] h-[90px] md:w-[180px] md:h-[180px]'
             />
           </div>
 

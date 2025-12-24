@@ -33,8 +33,8 @@ export const Header = () => {
           />
         </MxLink>
 
-        <nav className='h-full w-full text-sm sm:relative sm:left-auto sm:top-auto sm:flex sm:w-auto sm:flex-row sm:justify-end sm:bg-transparent'>
-          <div className='flex items-center gap-2'>
+        <nav className='flex items-center text-sm'>
+          <div className='flex items-center gap-2 flex-shrink-0'>
             {isLoggedIn && (
               <>
                 <NotificationsButton />
@@ -45,7 +45,7 @@ export const Header = () => {
                 )}
                 <Button
                   onClick={onClick}
-                  className='inline-block rounded-lg px-4 py-2 text-center hover:no-underline my-0 bg-gray-800 text-white hover:bg-gray-700 mr-0 disabled:bg-gray-200 disabled:text-black disabled:cursor-not-allowed transition-colors'
+                  className='inline-block rounded-lg px-3 py-2 text-sm text-center hover:no-underline my-0 bg-gray-800 text-white hover:bg-gray-700 mr-0 disabled:bg-gray-200 disabled:text-black disabled:cursor-not-allowed transition-colors whitespace-nowrap'
                 >
                   Disconnect
                 </Button>
