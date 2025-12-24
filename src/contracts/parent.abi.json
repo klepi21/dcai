@@ -1,0 +1,194 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "lib",
+            "version": "0.0.1"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.64.0"
+        }
+    },
+    "name": "DcaParent",
+    "constructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "name": "insertDcaAddress",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "removeDcaAddress",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Returns the DCA setups of all deployed DCA contracts.",
+                "",
+                "### Returns `MultiValueEncoded<DcaSetup>` - A list of DCA setups for each deployed contract:",
+                "- `DcaToken` - The token being used for DCA.",
+                "- `MinAmountPerSwap` - The minimum amount to be swapped in each DCA operation.",
+                "- `StrategyToken` - The token that is the target of the DCA strategy.",
+                "- `MultiValueEncoded<DcaFrequencyInMillis>` - A list of allowed DCA frequencies and their durations in milliseconds."
+            ],
+            "name": "getDcaContracts",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "variadic<multi<Address,EgldOrEsdtTokenIdentifier,BigUint,TokenIdentifier,variadic<multi<bytes,u64>>>>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "addAdmins",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addresses",
+                    "type": "variadic<Address>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "removeAdmins",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addresses",
+                    "type": "variadic<Address>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "isAdmin",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getAdmins",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "variadic<Address>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "pause",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "unpause",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "isPaused",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "identifier": "dcaAddressAdded",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "dcaAddressRemoved",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "adminsAdded",
+            "inputs": [
+                {
+                    "name": "admins",
+                    "type": "variadic<Address>",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "adminsRemoved",
+            "inputs": [
+                {
+                    "name": "admins",
+                    "type": "variadic<Address>",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "paused",
+            "inputs": []
+        },
+        {
+            "identifier": "unpaused",
+            "inputs": []
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {}
+}

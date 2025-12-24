@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useDcaContract, useCreateStrategy } from '@/hooks';
+import { useGetAccount, useGetNetworkConfig, Address } from '@/lib';
 
 interface MultiversXToken {
   identifier: string;
@@ -24,101 +26,321 @@ interface DcaStrategy {
   isActive: boolean;
   availableUsdc: number;
   tokenBalance: number;
+  lastExecutedTsMillis?: string; // Timestamp of last execution in milliseconds
 }
 
 export default function DCABoard() {
+  const { setup, setups, loading: loadingSetup, error: setupError, queryGetStrategyTokenAttributes } = useDcaContract();
+  const { address } = useGetAccount();
+  const { network } = useGetNetworkConfig();
+  const { createStrategy } = useCreateStrategy();
+  const [isCreatingStrategy, setIsCreatingStrategy] = useState(false);
   const [strategies, setStrategies] = useState<DcaStrategy[]>([]);
   const [tokens, setTokens] = useState<MultiversXToken[]>([]);
   const [loadingTokens, setLoadingTokens] = useState(true);
   const [token, setToken] = useState<string>('');
-  const [frequency, setFrequency] = useState<string>('daily');
-  const [amountPerDca, setAmountPerDca] = useState<string>('50');
+  const [frequency, setFrequency] = useState<string>('');
+  const [amountPerDca, setAmountPerDca] = useState<string>('');
   const [showTakeProfit, setShowTakeProfit] = useState<boolean>(false);
   const [takeProfitPct, setTakeProfitPct] = useState<string>('15');
   const [isTokenDropdownOpen, setIsTokenDropdownOpen] = useState<boolean>(false);
-
-  // Fetch MultiversX tokens
+  // State for expandable strategy groups
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [strategyIndices, setStrategyIndices] = useState<Record<string, number>>({});
+  
+  // Auto-expand first group when strategies change
   useEffect(() => {
-    const fetchTokens = async () => {
+    if (strategies.length > 0 && expandedGroups.size === 0) {
+      // Group strategies by token to find the first token
+      const groupedStrategies = strategies.reduce((acc, strategy) => {
+        const token = strategy.token;
+        if (!acc[token]) {
+          acc[token] = [];
+        }
+        acc[token].push(strategy);
+        return acc;
+      }, {} as Record<string, typeof strategies>);
+      
+      const firstToken = Object.keys(groupedStrategies)[0];
+      if (firstToken) {
+        setExpandedGroups(new Set([firstToken]));
+        setStrategyIndices({ [firstToken]: 0 });
+      }
+    }
+  }, [strategies]);
+
+  // Helper function to get network path for token images
+  const getNetworkPath = (): string => {
+    if (network.apiAddress) {
+      if (network.apiAddress.includes('devnet')) {
+        return 'devnet';
+      } else if (network.apiAddress.includes('testnet')) {
+        return 'testnet';
+      } else {
+        return 'mainnet';
+      }
+    }
+    return 'devnet'; // Default to devnet
+  };
+
+  // Fetch user's Meta ESDT tokens starting with "DCAI"
+  // Only run once when address changes, not continuously
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchUserDcaiTokens = async () => {
+      if (!address) {
+        setStrategies([]);
+        return;
+      }
+
       try {
-        setLoadingTokens(true);
-        // Fetch tokens from MultiversX API
-        const response = await fetch(
-          'https://api.multiversx.com/tokens?size=200&type=FungibleESDT&sort=transactions',
-          {
-            headers: {
-              'Accept': 'application/json',
-            },
-          }
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          const tokenList: MultiversXToken[] = data || [];
-          
-          // Add EGLD as native token at the beginning
-          const allTokens: MultiversXToken[] = [
-            { 
-              identifier: 'EGLD', 
-              name: 'MultiversX', 
-              ticker: 'EGLD', 
-              decimals: 18, 
-              assets: { 
-                svgUrl: 'https://tools.multiversx.com/assets-cdn/tokens/EGLD/icon.svg',
-                pngUrl: 'https://tools.multiversx.com/assets-cdn/tokens/EGLD/icon.png'
-              } 
-            },
-            ...tokenList.map((t: MultiversXToken) => ({
-              ...t,
-              assets: {
-                ...t.assets,
-                svgUrl: t.identifier ? `https://tools.multiversx.com/assets-cdn/tokens/${t.identifier}/icon.svg` : undefined,
-                pngUrl: t.identifier ? `https://tools.multiversx.com/assets-cdn/tokens/${t.identifier}/icon.png` : undefined,
-              }
-            }))
-          ];
-          
-          setTokens(allTokens);
-          if (allTokens.length > 0) {
-            setToken(allTokens[0].identifier || allTokens[0].ticker);
+        // Determine API URL based on network
+        let apiUrl = 'https://devnet-api.multiversx.com';
+        if (network.apiAddress) {
+          if (network.apiAddress.includes('devnet')) {
+            apiUrl = 'https://devnet-api.multiversx.com';
+          } else if (network.apiAddress.includes('testnet')) {
+            apiUrl = 'https://testnet-api.multiversx.com';
+          } else {
+            apiUrl = 'https://api.multiversx.com';
           }
         }
-      } catch (error) {
-        console.error('Error fetching tokens:', error);
-        // Fallback to common tokens
-        const fallbackTokens: MultiversXToken[] = [
-          { 
-            identifier: 'EGLD', 
-            name: 'MultiversX', 
-            ticker: 'EGLD', 
-            decimals: 18, 
-            assets: { 
-              svgUrl: 'https://tools.multiversx.com/assets-cdn/tokens/EGLD/icon.svg',
-              pngUrl: 'https://tools.multiversx.com/assets-cdn/tokens/EGLD/icon.png'
-            } 
+
+        // ONE API call to get all Meta ESDT tokens
+        const tokensUrl = `${apiUrl}/accounts/${address}/tokens?includeMetaESDT=true`;
+        
+        const response = await fetch(tokensUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
           },
-          { 
-            identifier: 'WEGLD-bd4d79', 
-            name: 'WrappedEGLD', 
-            ticker: 'WEGLD', 
-            decimals: 18,
-            assets: {
-              svgUrl: 'https://tools.multiversx.com/assets-cdn/tokens/WEGLD-bd4d79/icon.svg',
-              pngUrl: 'https://tools.multiversx.com/assets-cdn/tokens/WEGLD-bd4d79/icon.png'
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch tokens: ${response.status} - ${response.statusText}`);
+        }
+
+        const tokensData = await response.json();
+        
+        // Filter tokens that start with "DCAI"
+        const dcaiTokens = tokensData.filter((token: any) => {
+          const identifier = token.identifier || token.tokenIdentifier || '';
+          return identifier.startsWith('DCAI');
+        });
+
+        // Fetch strategy attributes for each DCAI token with 0.35s delay between calls
+        const strategiesData: DcaStrategy[] = [];
+        
+        for (let i = 0; i < dcaiTokens.length; i++) {
+          if (!isMounted) break; // Stop if component unmounted
+          
+          const dcaiToken = dcaiTokens[i];
+          // Extract nonce from token - use the nonce field directly (it's already in decimal)
+          // or fallback to parsing from identifier if nonce field is not available
+          const identifier = dcaiToken.identifier || dcaiToken.tokenIdentifier || '';
+          let nonce: number;
+          
+          if (dcaiToken.nonce !== undefined && dcaiToken.nonce !== null) {
+            // Use the nonce field directly (already in decimal format)
+            nonce = typeof dcaiToken.nonce === 'string' ? parseInt(dcaiToken.nonce, 10) : dcaiToken.nonce;
+          } else {
+            // Fallback: Extract nonce from token identifier (format: "COLLECTION-NONCE" where NONCE is hex)
+            // e.g., "DCAIWEGLD-5b41d1-01" -> nonce is 1 (from "01")
+            const nonceHex = identifier.split('-').pop() || '';
+            try {
+              // Parse hex nonce to decimal (e.g., "01" -> 1, "0a" -> 10)
+              nonce = parseInt(nonceHex, 16);
+            } catch (error) {
+              continue;
             }
-          },
-        ];
-        setTokens(fallbackTokens);
-        setToken('EGLD');
-      } finally {
-        setLoadingTokens(false);
+          }
+          
+          if (isNaN(nonce) || nonce === 0) {
+            continue;
+          }
+
+          // Get the owner address (this is the contract address for this strategy)
+          const contractAddress = dcaiToken.owner;
+          if (!contractAddress) {
+            continue;
+          }
+
+          // Add delay between calls (0.35 seconds) except for the first one
+          if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 350));
+          }
+
+          if (!isMounted) break; // Check again after delay
+
+          // Extract token info before calling queryGetStrategyTokenAttributes
+          const collection = dcaiToken.collection || '';
+          const tokenTicker = collection.split('-')[0]?.replace('DCAI', '') || identifier.split('-')[0]?.replace('DCAI', '') || 'UNKNOWN';
+          
+          // Use the owner address as the contract address for this strategy
+          const attributes = await queryGetStrategyTokenAttributes(nonce, contractAddress, {
+            identifier,
+            collection,
+            ticker: tokenTicker,
+            decimals: dcaiToken.decimals
+          });
+          
+          if (!isMounted) break; // Check after async call
+          
+          if (attributes) {
+            // Get network path for token images
+            let networkPathForImages = 'devnet';
+            if (network.apiAddress) {
+              if (network.apiAddress.includes('devnet')) {
+                networkPathForImages = 'devnet';
+              } else if (network.apiAddress.includes('testnet')) {
+                networkPathForImages = 'testnet';
+              } else {
+                networkPathForImages = 'mainnet';
+              }
+            }
+            
+            // Use dcaToken from setup if available, otherwise use collection
+            // Find the setup that matches this token ticker
+            const matchingSetup = setups?.find(s => {
+              const setupTicker = s.dcaToken.split('-')[0];
+              return setupTicker === tokenTicker;
+            });
+            const iconIdentifier = matchingSetup?.dcaToken || collection;
+            
+            // Convert USDC balance from smallest units (6 decimals) to readable format
+            const usdcDecimals = 1000000; // 10^6
+            const usdcBalance = parseFloat(attributes.usdcBalance) / usdcDecimals;
+            
+            // Convert token balance (assuming 18 decimals for wrapped tokens, but check token decimals)
+            const tokenDecimals = dcaiToken.decimals || 18;
+            const tokenDecimalsMultiplier = 10 ** tokenDecimals;
+            const tokenBalance = parseFloat(attributes.tokenBalance) / tokenDecimalsMultiplier;
+            
+            // Convert amount per swap from smallest units to readable format
+            const amountPerSwap = parseFloat(attributes.amountPerSwap) / usdcDecimals;
+            
+            // Parse take profit percentage (it's a u64, stored with 3 decimal places)
+            // e.g., 20000 = 20%, so divide by 1000 to get percentage
+            const takeProfitPct = parseFloat(attributes.takeProfitPercentage);
+            const takeProfitPercentage = takeProfitPct > 0 ? takeProfitPct / 1000 : 0;
+            
+            // Convert last executed timestamp from milliseconds to human-readable format
+            const lastExecutedTsMillis = attributes.lastExecutedTsMillis;
+            
+            const strategy: DcaStrategy = {
+              id: `${identifier}-${nonce}`, // Use identifier-nonce as unique ID
+              token: tokenTicker,
+              tokenIdentifier: identifier,
+              tokenLogo: `https://tools.multiversx.com/assets-cdn/${networkPathForImages}/tokens/${iconIdentifier}/icon.png`,
+              frequency: attributes.dcaFrequency || 'Unknown',
+              amountPerDca: amountPerSwap,
+              takeProfitPct: takeProfitPercentage > 0 ? takeProfitPercentage : undefined,
+              isActive: true, // You might want to check if strategy is active based on some condition
+              availableUsdc: usdcBalance,
+              tokenBalance: tokenBalance,
+              lastExecutedTsMillis: lastExecutedTsMillis
+            };
+            
+            strategiesData.push(strategy);
+          }
+        }
+        
+        if (isMounted) {
+          setStrategies(strategiesData);
+        }
+
+      } catch (error) {
+        if (isMounted) {
+          setStrategies([]);
+        }
       }
     };
 
-    fetchTokens();
-  }, []);
+    fetchUserDcaiTokens();
+    
+    // Cleanup function to prevent state updates if component unmounts
+    return () => {
+      isMounted = false;
+    };
+  }, [address, network.apiAddress, setups]); // Added setups to find matching dcaToken
 
-  const handleAddStrategy = (e: React.FormEvent) => {
+  // Load tokens and setup from smart contract
+  useEffect(() => {
+    if (loadingSetup) {
+      setLoadingTokens(true);
+      return;
+    }
+
+    if (setupError) {
+      setLoadingTokens(false);
+      return;
+    }
+
+    if (setups && setups.length > 0) {
+      try {
+        setLoadingTokens(true);
+        
+        // Build token list from all DCA contracts
+        // Each setup has a dcaToken (the token to DCA into)
+        const contractTokens: MultiversXToken[] = [];
+        const seenTokens = new Set<string>();
+        
+        // Add all unique dcaTokens from all setups
+        const networkPath = getNetworkPath();
+        setups.forEach((setupItem) => {
+          const dcaTokenIdentifier = setupItem.dcaToken;
+          if (dcaTokenIdentifier && dcaTokenIdentifier !== 'EGLD' && !seenTokens.has(dcaTokenIdentifier)) {
+            seenTokens.add(dcaTokenIdentifier);
+            const tokenTicker = dcaTokenIdentifier.split('-')[0] || dcaTokenIdentifier;
+            
+            // Use dcaToken directly as the identifier for the image with network path
+            contractTokens.push({
+              identifier: dcaTokenIdentifier,
+              name: tokenTicker,
+              ticker: tokenTicker,
+              decimals: 18, // Default, might need to fetch from API
+              assets: {
+                svgUrl: `https://tools.multiversx.com/assets-cdn/${networkPath}/tokens/${dcaTokenIdentifier}/icon.png`,
+                pngUrl: `https://tools.multiversx.com/assets-cdn/${networkPath}/tokens/${dcaTokenIdentifier}/icon.png`
+              }
+            });
+          }
+        });
+        
+        setTokens(contractTokens);
+        
+        // Set default token
+        if (contractTokens.length > 0 && !token) {
+          setToken(contractTokens[0].identifier || contractTokens[0].ticker);
+        }
+        
+        // Update frequency and min amount when token changes
+        // Find the setup that matches the selected token
+        const selectedSetup = setups.find(s => s.dcaToken === token) || setup;
+        if (selectedSetup) {
+          // Set default frequency from allowed frequencies
+          if (selectedSetup.allowedFrequencies && selectedSetup.allowedFrequencies.length > 0) {
+            if (!frequency || !selectedSetup.allowedFrequencies.find(f => f.frequency === frequency)) {
+              setFrequency(selectedSetup.allowedFrequencies[0].frequency);
+            }
+          }
+          
+          // Set default amount to the minimum
+          const minAmountUsdc = parseFloat(selectedSetup.minAmountPerSwap);
+          if (minAmountUsdc > 0 && (!amountPerDca || parseFloat(amountPerDca) < minAmountUsdc)) {
+            setAmountPerDca(minAmountUsdc.toFixed(2));
+          }
+        }
+        
+      } catch (error) {
+      } finally {
+        setLoadingTokens(false);
+      }
+    }
+  }, [setups, setup, loadingSetup, setupError, token, frequency, amountPerDca]);
+
+  const handleAddStrategy = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const parsedAmount = Number(amountPerDca);
@@ -126,33 +348,37 @@ export default function DCABoard() {
       return;
     }
 
-    const selectedToken = tokens.find(t => (t.identifier || t.ticker) === token);
+    // Find the setup that matches the selected token
+    const selectedSetup = setups?.find(s => s.dcaToken === token);
+    if (!selectedSetup) {
+      alert('Please select a valid token');
+      return;
+    }
+
+    // Address is already in bech32 format (erd1...)
+    const contractAddress = selectedSetup.address;
+
     const parsedTakeProfit = showTakeProfit ? Number(takeProfitPct) : undefined;
 
-    // Get token logo - prefer SVG, fallback to PNG
-    const tokenLogo = selectedToken?.identifier 
-      ? `https://tools.multiversx.com/assets-cdn/tokens/${selectedToken.identifier}/icon.svg`
-      : (selectedToken?.assets?.svgUrl || selectedToken?.assets?.pngUrl);
+    try {
+      setIsCreatingStrategy(true);
+      
+      await createStrategy(
+        contractAddress,
+        parsedAmount,
+        frequency,
+        parsedTakeProfit
+      );
 
-    const newStrategy: DcaStrategy = {
-      id: `${Date.now()}`,
-      token: selectedToken?.ticker || token,
-      tokenIdentifier: selectedToken?.identifier || token,
-      tokenLogo,
-      frequency,
-      amountPerDca: parsedAmount,
-      takeProfitPct: parsedTakeProfit,
-      isActive: true,
-      availableUsdc: 0,
-      tokenBalance: 0
-    };
-
-    setStrategies((prev) => [newStrategy, ...prev]);
-    
-    // Reset form
-    setAmountPerDca('50');
-    setShowTakeProfit(false);
-    setTakeProfitPct('15');
+      // Reset form on success
+      setAmountPerDca('50');
+      setShowTakeProfit(false);
+      setTakeProfitPct('15');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to create strategy');
+    } finally {
+      setIsCreatingStrategy(false);
+    }
   };
 
   const toggleStrategy = (id: string) => {
@@ -173,12 +399,10 @@ export default function DCABoard() {
 
   const handleDeposit = (strategyId: string) => {
     // TODO: Implement deposit logic
-    console.log('Deposit for strategy:', strategyId);
   };
 
   const handleWithdraw = (strategyId: string, asset: 'usdc' | 'token') => {
     // TODO: Implement withdraw logic
-    console.log(`Withdraw ${asset.toUpperCase()} for strategy:`, strategyId);
   };
 
 
@@ -231,9 +455,14 @@ export default function DCABoard() {
           </div>
 
           <form className='flex flex-col gap-4' onSubmit={handleAddStrategy}>
-            <h2 className='text-sm font-semibold tracking-tight'>
-              Create a DCA strategy
-            </h2>
+            <div className='flex items-center justify-between'>
+              <h2 className='text-sm font-semibold tracking-tight'>
+                Create a DCA strategy
+              </h2>
+              {setupError && (
+                <span className='text-xs text-red-500'>{setupError}</span>
+              )}
+            </div>
 
             <div className='flex flex-col gap-1'>
               <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
@@ -252,9 +481,12 @@ export default function DCABoard() {
                   >
                     {(() => {
                       const selectedToken = tokens.find(t => (t.identifier || t.ticker) === token);
-                      const tokenIcon = selectedToken?.identifier 
-                        ? `https://tools.multiversx.com/assets-cdn/tokens/${selectedToken.identifier}/icon.svg`
-                        : (selectedToken?.assets?.svgUrl || selectedToken?.assets?.pngUrl);
+                      // Use dcaToken identifier directly for the image with network path
+                      const networkPath = getNetworkPath();
+                      const tokenIcon = selectedToken?.assets?.pngUrl || selectedToken?.assets?.svgUrl || 
+                        (selectedToken?.identifier 
+                          ? `https://tools.multiversx.com/assets-cdn/${networkPath}/tokens/${selectedToken.identifier}/icon.png`
+                          : undefined);
                       return (
                         <>
                           {tokenIcon && (
@@ -265,15 +497,14 @@ export default function DCABoard() {
                               height={20}
                               className='flex-shrink-0'
                               onError={(e) => {
+                                // Hide the image on error (especially for WEGLD)
                                 const target = e.target as HTMLImageElement;
-                                if (target.src.endsWith('.svg')) {
-                                  target.src = target.src.replace('.svg', '.png');
-                                }
+                                target.style.display = 'none';
                               }}
                             />
                           )}
                           <span className='flex-1'>
-                            {selectedToken?.ticker} - {selectedToken?.name}
+                            {selectedToken?.ticker}
                           </span>
                           <span className='text-[hsl(var(--gray-300)/0.6)]'>▼</span>
                         </>
@@ -289,17 +520,33 @@ export default function DCABoard() {
                       />
                       <div className='absolute z-20 mt-1 max-h-60 w-full overflow-auto border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] shadow-lg'>
                         {tokens.map((t) => {
-                          const tokenIcon = t.identifier 
-                            ? `https://tools.multiversx.com/assets-cdn/tokens/${t.identifier}/icon.svg`
-                            : (t.assets?.svgUrl || t.assets?.pngUrl);
+                          // Use dcaToken identifier directly for the image with network path
+                          const networkPath = getNetworkPath();
+                          const tokenIcon = t.assets?.pngUrl || t.assets?.svgUrl ||
+                            (t.identifier 
+                              ? `https://tools.multiversx.com/assets-cdn/${networkPath}/tokens/${t.identifier}/icon.png`
+                              : undefined);
                           const isSelected = (t.identifier || t.ticker) === token;
                           return (
                             <button
                               key={t.identifier || t.ticker}
                               type='button'
                               onClick={() => {
-                                setToken(t.identifier || t.ticker);
+                                const newToken = t.identifier || t.ticker;
+                                setToken(newToken);
                                 setIsTokenDropdownOpen(false);
+                                
+                                // Update frequency and min amount for the selected token
+                                const selectedSetup = setups?.find(s => s.dcaToken === newToken);
+                                if (selectedSetup) {
+                                  if (selectedSetup.allowedFrequencies && selectedSetup.allowedFrequencies.length > 0) {
+                                    setFrequency(selectedSetup.allowedFrequencies[0].frequency);
+                                  }
+                                  const minAmountUsdc = parseFloat(selectedSetup.minAmountPerSwap);
+                                  if (minAmountUsdc > 0) {
+                                    setAmountPerDca(minAmountUsdc.toFixed(2));
+                                  }
+                                }
                               }}
                               className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[hsl(var(--gray-300)/0.1)] ${
                                 isSelected ? 'bg-[hsl(var(--sky-300)/0.2)]' : ''
@@ -313,16 +560,15 @@ export default function DCABoard() {
                                   height={20}
                                   className='flex-shrink-0'
                                   onError={(e) => {
+                                    // Hide the image on error (especially for WEGLD)
                                     const target = e.target as HTMLImageElement;
-                                    if (target.src.endsWith('.svg')) {
-                                      target.src = target.src.replace('.svg', '.png');
-                                    }
+                                    target.style.display = 'none';
                                   }}
                                 />
                               )}
                               <span className='flex-1'>
                                 {isSelected && <span className='text-[hsl(var(--sky-300))]'>✓ </span>}
-                                {t.ticker} - {t.name}
+                                {t.ticker}
                               </span>
                             </button>
                           );
@@ -339,29 +585,69 @@ export default function DCABoard() {
                 <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
                   Frequency
                 </label>
-                <select
-                  value={frequency}
-                  onChange={(e) => setFrequency(e.target.value)}
-                  className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
-                >
-                  <option value='hourly'>Every hour</option>
-                  <option value='daily'>Daily</option>
-                  <option value='weekly'>Weekly</option>
-                  <option value='monthly'>Monthly</option>
-                </select>
+                {loadingSetup ? (
+                  <div className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm flex items-center text-[hsl(var(--gray-300)/0.6)]'>
+                    Loading frequencies...
+                  </div>
+                ) : (() => {
+                  // Find the setup for the selected token
+                  const selectedSetup = setups?.find(s => s.dcaToken === token) || setup;
+                  return selectedSetup && selectedSetup.allowedFrequencies && selectedSetup.allowedFrequencies.length > 0 ? (
+                    <select
+                      value={frequency}
+                      onChange={(e) => setFrequency(e.target.value)}
+                      className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
+                    >
+                      {selectedSetup.allowedFrequencies.map((freq, index) => {
+                        // Show only the frequency name, without duration
+                        return (
+                          <option key={index} value={freq.frequency}>
+                            {freq.frequency}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  ) : (
+                    <select
+                      value={frequency}
+                      onChange={(e) => setFrequency(e.target.value)}
+                      className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
+                    >
+                      <option value='hourly'>Every hour</option>
+                      <option value='daily'>Daily</option>
+                      <option value='weekly'>Weekly</option>
+                      <option value='monthly'>Monthly</option>
+                    </select>
+                  );
+                })()}
               </div>
 
               <div className='flex flex-col gap-1'>
                 <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
                   USDC per DCA
+                  {(() => {
+                    const selectedSetup = setups?.find(s => s.dcaToken === token) || setup;
+                    return selectedSetup && (
+                      <span className='text-[hsl(var(--gray-300)/0.6)] ml-1'>
+                        (Min: {parseFloat(selectedSetup.minAmountPerSwap).toFixed(2)} USDC)
+                      </span>
+                    );
+                  })()}
                 </label>
                 <input
                   type='number'
-                  min='0'
+                  min={(() => {
+                    const selectedSetup = setups?.find(s => s.dcaToken === token) || setup;
+                    return selectedSetup ? parseFloat(selectedSetup.minAmountPerSwap).toFixed(2) : '0';
+                  })()}
                   step='0.01'
                   value={amountPerDca}
                   onChange={(e) => setAmountPerDca(e.target.value)}
                   className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
+                  placeholder={(() => {
+                    const selectedSetup = setups?.find(s => s.dcaToken === token) || setup;
+                    return selectedSetup ? parseFloat(selectedSetup.minAmountPerSwap).toFixed(2) : '50';
+                  })()}
                 />
               </div>
             </div>
@@ -402,9 +688,10 @@ export default function DCABoard() {
             <div className='mt-2 flex justify-end'>
               <button
                 type='submit'
-                className='inline-flex items-center justify-center bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700'
+                disabled={isCreatingStrategy}
+                className='inline-flex items-center justify-center bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
               >
-                Create Strategy
+                {isCreatingStrategy ? 'Creating...' : 'Create Strategy'}
               </button>
             </div>
           </form>
@@ -418,117 +705,251 @@ export default function DCABoard() {
                 No strategies yet. Create your first DCA plan on the left.
               </p>
             ) : (
-              <div className='flex flex-col gap-3'>
-                {strategies.map((strategy) => (
-                  <div
-                    key={strategy.id}
-                    className='flex flex-col gap-3 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] p-4 text-sm'
-                  >
-                    <div className='flex items-center justify-between'>
-                      <div className='flex items-center gap-2'>
-                        {strategy.tokenLogo && (
-                          <Image
-                            src={strategy.tokenLogo}
-                            alt={strategy.token}
-                            width={24}
-                            height={24}
-                            className='rounded-full'
-                            onError={(e) => {
-                              // Fallback to PNG if SVG fails
-                              const target = e.target as HTMLImageElement;
-                              if (target.src.endsWith('.svg')) {
-                                target.src = target.src.replace('.svg', '.png');
-                              }
-                            }}
-                          />
-                        )}
-                        <div className='flex flex-col'>
-                          <span className='font-medium'>
-                            {strategy.token} DCA
-                          </span>
-                          <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                            {strategy.frequency} • $
-                            {strategy.amountPerDca.toFixed(2)} USDC per run
-                          </span>
-                        </div>
-                      </div>
-                      <div className='flex items-center gap-2'>
-                        <button
-                          type='button'
-                          onClick={() => toggleStrategy(strategy.id)}
-                          className={`inline-flex items-center px-3 py-1 text-xs font-medium transition-colors ${
-                            strategy.isActive
-                              ? 'bg-[hsl(var(--sky-300))] text-black'
-                              : 'bg-[hsl(var(--gray-300)/0.2)] text-[hsl(var(--gray-300)/0.8)]'
-                          }`}
-                        >
-                          {strategy.isActive ? 'Enabled' : 'Disabled'}
-                        </button>
-                        <button
-                          type='button'
-                          onClick={() => deleteStrategy(strategy.id)}
-                          className='inline-flex items-center justify-center h-6 w-6 border border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] transition-colors hover:border-red-500/50 hover:text-red-500 hover:bg-red-500/10'
-                          title='Delete strategy'
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className='flex flex-col gap-2 border-t border-[hsl(var(--gray-300)/0.2)] pt-3'>
-                      <div className='flex items-center justify-between text-xs'>
-                        <span className='text-[hsl(var(--gray-300)/0.7)]'>Available USDC</span>
-                        <span className='font-medium'>${strategy.availableUsdc.toFixed(2)}</span>
-                      </div>
-                      <div className='flex items-center justify-between text-xs'>
-                        <span className='text-[hsl(var(--gray-300)/0.7)]'>
-                          Available {strategy.token}
-                        </span>
-                        <span className='font-medium'>
-                          {strategy.tokenBalance.toFixed(4)} {strategy.token}
-                        </span>
-                      </div>
-                      
-                      {strategy.takeProfitPct !== undefined && (
-                        <div className='flex items-center justify-between text-xs'>
-                          <span className='text-[hsl(var(--gray-300)/0.7)]'>Take-profit</span>
-                          <span className='font-medium'>{strategy.takeProfitPct}%</span>
-                        </div>
-                      )}
-                    </div>
+              <div className='flex flex-col gap-2'>
+                {(() => {
+                  // Group strategies by token
+                  const groupedStrategies = strategies.reduce((acc, strategy) => {
+                    const token = strategy.token;
+                    if (!acc[token]) {
+                      acc[token] = [];
+                    }
+                    acc[token].push(strategy);
+                    return acc;
+                  }, {} as Record<string, typeof strategies>);
 
-                    <div className='flex flex-wrap gap-2'>
-                      <button
-                        type='button'
-                        onClick={() => handleDeposit(strategy.id)}
-                        className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
+                  return Object.entries(groupedStrategies).map(([token, tokenStrategies]) => {
+                    const groupKey = token;
+                    const isExpanded = expandedGroups.has(groupKey);
+                    const currentIndex = strategyIndices[groupKey] || 0;
+                    const currentStrategy = tokenStrategies[currentIndex];
+
+                    return (
+                      <div
+                        key={groupKey}
+                        className='border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))]'
                       >
-                        Deposit
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => handleWithdraw(strategy.id, 'usdc')}
-                        className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
-                      >
-                        Withdraw USDC
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => handleWithdraw(strategy.id, 'token')}
-                        className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
-                      >
-                        Withdraw {strategy.token}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                        {/* Collapsed header */}
+                        <button
+                          type='button'
+                          onClick={() => {
+                            const newExpanded = new Set(expandedGroups);
+                            if (isExpanded) {
+                              newExpanded.delete(groupKey);
+                            } else {
+                              newExpanded.add(groupKey);
+                              // Initialize index if not set
+                              if (strategyIndices[groupKey] === undefined) {
+                                setStrategyIndices(prev => ({ ...prev, [groupKey]: 0 }));
+                              }
+                            }
+                            setExpandedGroups(newExpanded);
+                          }}
+                          className='w-full flex items-center justify-between p-4 text-left hover:bg-[hsl(var(--gray-300)/0.05)] transition-colors'
+                        >
+                          <div className='flex items-center gap-2'>
+                            {currentStrategy.tokenLogo && (
+                              <Image
+                                src={currentStrategy.tokenLogo}
+                                alt={token}
+                                width={24}
+                                height={24}
+                                className='rounded-full'
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <div className='flex flex-col'>
+                              <span className='font-medium text-sm'>
+                                {token} DCA
+                              </span>
+                              <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
+                                {tokenStrategies.length} {tokenStrategies.length === 1 ? 'strategy' : 'strategies'}
+                              </span>
+                            </div>
+                          </div>
+                          <span className='text-[hsl(var(--gray-300)/0.7)]'>
+                            {isExpanded ? '▼' : '▶'}
+                          </span>
+                        </button>
+
+                        {/* Expanded content with slider */}
+                        {isExpanded && currentStrategy && (
+                          <div className='border-t border-[hsl(var(--gray-300)/0.2)] p-4'>
+                            {/* Slider navigation */}
+                            {tokenStrategies.length > 1 && (
+                              <div className='flex items-center justify-between mb-4'>
+                                <button
+                                  type='button'
+                                  onClick={() => {
+                                    const newIndex = currentIndex > 0 ? currentIndex - 1 : tokenStrategies.length - 1;
+                                    setStrategyIndices(prev => ({ ...prev, [groupKey]: newIndex }));
+                                  }}
+                                  className='flex items-center justify-center h-8 w-8 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:text-[hsl(var(--sky-300))]'
+                                  disabled={tokenStrategies.length <= 1}
+                                >
+                                  ←
+                                </button>
+                                <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
+                                  {currentIndex + 1} / {tokenStrategies.length}
+                                </span>
+                                <button
+                                  type='button'
+                                  onClick={() => {
+                                    const newIndex = currentIndex < tokenStrategies.length - 1 ? currentIndex + 1 : 0;
+                                    setStrategyIndices(prev => ({ ...prev, [groupKey]: newIndex }));
+                                  }}
+                                  className='flex items-center justify-center h-8 w-8 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:text-[hsl(var(--sky-300))]'
+                                  disabled={tokenStrategies.length <= 1}
+                                >
+                                  →
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Strategy card */}
+                            <div className='flex flex-col gap-3 text-sm'>
+                              <div className='flex items-center justify-between'>
+                                <div className='flex items-center gap-2'>
+                                  {currentStrategy.tokenLogo && (
+                                    <Image
+                                      src={currentStrategy.tokenLogo}
+                                      alt={currentStrategy.token}
+                                      width={24}
+                                      height={24}
+                                      className='rounded-full'
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                      }}
+                                    />
+                                  )}
+                                  <div className='flex flex-col'>
+                                    <span className='font-medium'>
+                                      {currentStrategy.token} DCA
+                                    </span>
+                                    <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
+                                      {currentStrategy.frequency} • $
+                                      {currentStrategy.amountPerDca.toFixed(2)} USDC per run
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className='flex items-center gap-2'>
+                                  <button
+                                    type='button'
+                                    onClick={() => toggleStrategy(currentStrategy.id)}
+                                    className={`inline-flex items-center px-3 py-1 text-xs font-medium transition-colors ${
+                                      currentStrategy.isActive
+                                        ? 'bg-[hsl(var(--sky-300))] text-black'
+                                        : 'bg-[hsl(var(--gray-300)/0.2)] text-[hsl(var(--gray-300)/0.8)]'
+                                    }`}
+                                  >
+                                    {currentStrategy.isActive ? 'Enabled' : 'Disabled'}
+                                  </button>
+                                  <button
+                                    type='button'
+                                    onClick={() => deleteStrategy(currentStrategy.id)}
+                                    className='inline-flex items-center justify-center h-6 w-6 border border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] transition-colors hover:border-red-500/50 hover:text-red-500 hover:bg-red-500/10'
+                                    title='Delete strategy'
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              <div className='flex flex-col gap-2 border-t border-[hsl(var(--gray-300)/0.2)] pt-3'>
+                                <div className='flex items-center justify-between text-xs'>
+                                  <span className='text-[hsl(var(--gray-300)/0.7)]'>Available USDC</span>
+                                  <span className='font-medium'>${currentStrategy.availableUsdc.toFixed(2)}</span>
+                                </div>
+                                <div className='flex items-center justify-between text-xs'>
+                                  <span className='text-[hsl(var(--gray-300)/0.7)]'>
+                                    Available {currentStrategy.token}
+                                  </span>
+                                  <span className='font-medium'>
+                                    {currentStrategy.tokenBalance.toFixed(2)} {currentStrategy.token}
+                                  </span>
+                                </div>
+                                
+                                {currentStrategy.takeProfitPct !== undefined && (
+                                  <div className='flex items-center justify-between text-xs'>
+                                    <span className='text-[hsl(var(--gray-300)/0.7)]'>Take-profit</span>
+                                    <span className='font-medium'>{currentStrategy.takeProfitPct.toFixed(1)}%</span>
+                                  </div>
+                                )}
+                                
+                                {currentStrategy.lastExecutedTsMillis && parseFloat(currentStrategy.lastExecutedTsMillis) > 0 && (
+                                  <div className='flex items-center justify-between text-xs'>
+                                    <span className='text-[hsl(var(--gray-300)/0.7)]'>Last DCA</span>
+                                    <span className='font-medium'>
+                                      {(() => {
+                                        const timestamp = parseFloat(currentStrategy.lastExecutedTsMillis);
+                                        const date = new Date(timestamp);
+                                        const now = new Date();
+                                        const diffMs = now.getTime() - date.getTime();
+                                        const diffMins = Math.floor(diffMs / 60000);
+                                        const diffHours = Math.floor(diffMs / 3600000);
+                                        const diffDays = Math.floor(diffMs / 86400000);
+                                        
+                                        if (diffMins < 1) {
+                                          return 'Just now';
+                                        } else if (diffMins < 60) {
+                                          return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
+                                        } else if (diffHours < 24) {
+                                          return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+                                        } else if (diffDays < 7) {
+                                          return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
+                                        } else {
+                                          return date.toLocaleDateString('en-US', { 
+                                            month: 'short', 
+                                            day: 'numeric',
+                                            year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+                                          });
+                                        }
+                                      })()}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className='flex flex-wrap gap-2'>
+                                <button
+                                  type='button'
+                                  onClick={() => handleDeposit(currentStrategy.id)}
+                                  className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
+                                >
+                                  Deposit
+                                </button>
+                                <button
+                                  type='button'
+                                  onClick={() => handleWithdraw(currentStrategy.id, 'usdc')}
+                                  className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
+                                >
+                                  Withdraw USDC
+                                </button>
+                                <button
+                                  type='button'
+                                  onClick={() => handleWithdraw(currentStrategy.id, 'token')}
+                                  className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
+                                >
+                                  Withdraw {currentStrategy.token}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             )}
           </div>
         </section>
 
         <section className='relative mt-8 border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-6 shadow-sm'>
-          <div className='pointer-events-none absolute top-0 right-8 z-10 -translate-y-full'>
+          <div className='pointer-events-none absolute top-0 right-8 z-10 -translate-y-1/2'>
             <Image
               src='/assets/img/slothyoga.png'
               alt='DCAi sloth yoga'
@@ -607,3 +1028,4 @@ export default function DCABoard() {
     </div>
   );
 };
+
