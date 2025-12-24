@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  distDir: 'build',
+  // Only use custom distDir for local builds, Vercel uses .next by default
+  ...(process.env.VERCEL ? {} : { distDir: 'build' }),
   compiler: {
     styledComponents: true
   },

@@ -1,0 +1,7 @@
+{
+  "buildCommand": "yarn copy-devnet-config && yarn next build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "yarn install"
+}
+
