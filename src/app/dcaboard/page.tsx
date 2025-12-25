@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { useDcaContract, useCreateStrategy } from '@/hooks';
+import { useDcaContract, useCreateStrategy, useDeposit, useWithdraw, useDeleteStrategy } from '@/hooks';
 import { useGetAccount, useGetNetworkConfig, Address } from '@/lib';
 
 interface MultiversXToken {
@@ -27,6 +27,7 @@ interface DcaStrategy {
   availableUsdc: number;
   tokenBalance: number;
   lastExecutedTsMillis?: string; // Timestamp of last execution in milliseconds
+  contractAddress: string; // DCA contract address (bech32 format)
 }
 
 export default function DCABoard() {
@@ -34,6 +35,9 @@ export default function DCABoard() {
   const { address } = useGetAccount();
   const { network } = useGetNetworkConfig();
   const { createStrategy } = useCreateStrategy();
+  const { deposit } = useDeposit();
+  const { withdraw } = useWithdraw();
+  const { deleteStrategy } = useDeleteStrategy();
   const [isCreatingStrategy, setIsCreatingStrategy] = useState(false);
   const [strategies, setStrategies] = useState<DcaStrategy[]>([]);
   const [tokens, setTokens] = useState<MultiversXToken[]>([]);
@@ -47,6 +51,19 @@ export default function DCABoard() {
   // State for expandable strategy groups
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [strategyIndices, setStrategyIndices] = useState<Record<string, number>>({});
+  // State for deposit modal
+  const [depositModal, setDepositModal] = useState<{ isOpen: boolean; strategyId: string | null; amount: string }>({
+    isOpen: false,
+    strategyId: null,
+    amount: ''
+  });
+  // State for withdraw modal
+  const [withdrawModal, setWithdrawModal] = useState<{ isOpen: boolean; strategyId: string | null; asset: 'usdc' | 'token' | null; amount: string }>({
+    isOpen: false,
+    strategyId: null,
+    asset: null,
+    amount: ''
+  });
   
   // Auto-expand first group when strategies change
   useEffect(() => {
@@ -239,7 +256,8 @@ export default function DCABoard() {
               isActive: true, // You might want to check if strategy is active based on some condition
               availableUsdc: usdcBalance,
               tokenBalance: tokenBalance,
-              lastExecutedTsMillis: lastExecutedTsMillis
+              lastExecutedTsMillis: lastExecutedTsMillis,
+              contractAddress: contractAddress // Store the contract address for deposit/withdraw
             };
             
             strategiesData.push(strategy);
@@ -391,18 +409,90 @@ export default function DCABoard() {
     );
   };
 
-  const deleteStrategy = (id: string) => {
+  const handleDeleteStrategy = async (strategyId: string) => {
+    const strategy = strategies.find(s => s.id === strategyId);
+    if (!strategy) return;
+
     if (confirm('Are you sure you want to delete this strategy?')) {
-      setStrategies((prev) => prev.filter((strategy) => strategy.id !== id));
+      try {
+        await deleteStrategy(strategy.contractAddress, strategy.tokenIdentifier);
+        // Strategy will be removed after successful transaction
+        // The UI will update when strategies are refreshed
+      } catch (error) {
+        // Error handling is done by the transaction system
+      }
     }
   };
 
   const handleDeposit = (strategyId: string) => {
-    // TODO: Implement deposit logic
+    setDepositModal({
+      isOpen: true,
+      strategyId,
+      amount: ''
+    });
+  };
+
+  const handleDepositSubmit = async () => {
+    if (!depositModal.strategyId) return;
+
+    const strategy = strategies.find(s => s.id === depositModal.strategyId);
+    if (!strategy) {
+      setDepositModal({ isOpen: false, strategyId: null, amount: '' });
+      return;
+    }
+
+    const amount = parseFloat(depositModal.amount);
+    if (isNaN(amount) || amount <= 0) {
+      return; // Validation handled in UI
+    }
+
+    try {
+      await deposit(strategy.contractAddress, amount, strategy.tokenIdentifier);
+      setDepositModal({ isOpen: false, strategyId: null, amount: '' });
+    } catch (error) {
+      // Error handling is done by the transaction system
+      setDepositModal({ isOpen: false, strategyId: null, amount: '' });
+    }
+  };
+
+  const handleDepositCancel = () => {
+    setDepositModal({ isOpen: false, strategyId: null, amount: '' });
   };
 
   const handleWithdraw = (strategyId: string, asset: 'usdc' | 'token') => {
-    // TODO: Implement withdraw logic
+    setWithdrawModal({
+      isOpen: true,
+      strategyId,
+      asset,
+      amount: ''
+    });
+  };
+
+  const handleWithdrawSubmit = async () => {
+    if (!withdrawModal.strategyId || !withdrawModal.asset) return;
+
+    const strategy = strategies.find(s => s.id === withdrawModal.strategyId);
+    if (!strategy) {
+      setWithdrawModal({ isOpen: false, strategyId: null, asset: null, amount: '' });
+      return;
+    }
+
+    const amount = parseFloat(withdrawModal.amount);
+    if (isNaN(amount) || amount <= 0) {
+      return; // Validation handled in UI
+    }
+
+    try {
+      await withdraw(strategy.contractAddress, amount, withdrawModal.asset, strategy.tokenIdentifier);
+      setWithdrawModal({ isOpen: false, strategyId: null, asset: null, amount: '' });
+    } catch (error) {
+      // Error handling is done by the transaction system
+      setWithdrawModal({ isOpen: false, strategyId: null, asset: null, amount: '' });
+    }
+  };
+
+  const handleWithdrawCancel = () => {
+    setWithdrawModal({ isOpen: false, strategyId: null, asset: null, amount: '' });
   };
 
 
@@ -849,7 +939,7 @@ export default function DCABoard() {
                                   </button>
                                   <button
                                     type='button'
-                                    onClick={() => deleteStrategy(currentStrategy.id)}
+                                    onClick={() => handleDeleteStrategy(currentStrategy.id)}
                                     className='inline-flex items-center justify-center h-6 w-6 border border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] transition-colors hover:border-red-500/50 hover:text-red-500 hover:bg-red-500/10'
                                     title='Delete strategy'
                                   >
@@ -1025,6 +1115,165 @@ export default function DCABoard() {
           </div>
         </section>
       </div>
+
+      {/* Withdraw Modal */}
+      {withdrawModal.isOpen && withdrawModal.strategyId && withdrawModal.asset && (() => {
+        const strategy = strategies.find(s => s.id === withdrawModal.strategyId);
+        if (!strategy) return null;
+
+        const amount = parseFloat(withdrawModal.amount);
+        const isValid = !isNaN(amount) && amount > 0;
+        
+        // Get the balance for the selected asset
+        const balance = withdrawModal.asset === 'usdc' ? strategy.availableUsdc : strategy.tokenBalance;
+        const assetName = withdrawModal.asset === 'usdc' ? 'USDC' : strategy.token;
+        const maxAmount = balance;
+        const isValidAmount = isValid && amount <= maxAmount;
+
+        return (
+          <div
+            className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'
+            onClick={handleWithdrawCancel}
+          >
+            <div
+              className='border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] p-6 shadow-lg w-full max-w-md mx-4'
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className='text-sm font-semibold tracking-tight mb-1'>
+                Withdraw {assetName}
+              </h2>
+              <p className='text-xs text-[hsl(var(--gray-300)/0.7)] mb-4'>
+                Enter {assetName} amount to withdraw from {strategy.token} DCA strategy
+              </p>
+
+              <div className='flex flex-col gap-2 mb-4'>
+                <div className='flex items-center justify-between text-xs text-[hsl(var(--gray-300)/0.7)]'>
+                  <span>Available balance:</span>
+                  <span className='font-medium'>{balance.toFixed(2)} {assetName}</span>
+                </div>
+                <input
+                  type='number'
+                  min='0'
+                  step='0.01'
+                  max={maxAmount.toFixed(2)}
+                  value={withdrawModal.amount}
+                  onChange={(e) => setWithdrawModal({ ...withdrawModal, amount: e.target.value })}
+                  className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
+                  placeholder='0.00'
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && isValidAmount) {
+                      handleWithdrawSubmit();
+                    } else if (e.key === 'Escape') {
+                      handleWithdrawCancel();
+                    }
+                  }}
+                />
+                {withdrawModal.amount && !isValidAmount && (
+                  <p className='text-xs text-red-500'>
+                    {!isValid 
+                      ? 'Please enter a valid amount greater than 0'
+                      : `Amount cannot exceed available balance of ${maxAmount.toFixed(2)} ${assetName}`
+                    }
+                  </p>
+                )}
+              </div>
+
+              <div className='flex gap-3 justify-end'>
+                <button
+                  type='button'
+                  onClick={handleWithdrawCancel}
+                  className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
+                >
+                  Cancel
+                </button>
+                <button
+                  type='button'
+                  onClick={handleWithdrawSubmit}
+                  disabled={!isValidAmount}
+                  className='inline-flex items-center justify-center bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  Withdraw
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Deposit Modal */}
+      {depositModal.isOpen && depositModal.strategyId && (() => {
+        const strategy = strategies.find(s => s.id === depositModal.strategyId);
+        if (!strategy) return null;
+
+        const amount = parseFloat(depositModal.amount);
+        const isValid = !isNaN(amount) && amount > 0;
+
+        return (
+          <div
+            className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'
+            onClick={handleDepositCancel}
+          >
+            <div
+              className='border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] p-6 shadow-lg w-full max-w-md mx-4'
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className='text-sm font-semibold tracking-tight mb-1'>
+                Deposit USDC
+              </h2>
+              <p className='text-xs text-[hsl(var(--gray-300)/0.7)] mb-4'>
+                Enter USDC amount to deposit for {strategy.token} DCA strategy
+              </p>
+
+              <div className='flex flex-col gap-2 mb-6'>
+                <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
+                  Amount (USDC)
+                </label>
+                <input
+                  type='number'
+                  min='0'
+                  step='0.01'
+                  value={depositModal.amount}
+                  onChange={(e) => setDepositModal({ ...depositModal, amount: e.target.value })}
+                  className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
+                  placeholder='0.00'
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && isValid) {
+                      handleDepositSubmit();
+                    } else if (e.key === 'Escape') {
+                      handleDepositCancel();
+                    }
+                  }}
+                />
+                {depositModal.amount && !isValid && (
+                  <p className='text-xs text-red-500'>
+                    Please enter a valid amount greater than 0
+                  </p>
+                )}
+              </div>
+
+              <div className='flex gap-3 justify-end'>
+                <button
+                  type='button'
+                  onClick={handleDepositCancel}
+                  className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
+                >
+                  Cancel
+                </button>
+                <button
+                  type='button'
+                  onClick={handleDepositSubmit}
+                  disabled={!isValid}
+                  className='inline-flex items-center justify-center bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  Deposit
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

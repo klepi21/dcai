@@ -1,5 +1,14 @@
 {
     "buildInfo": {
+        "rustc": {
+            "version": "1.92.0",
+            "commitHash": "ded5c06cf21d2b93bffd5d884aa6e96934ee4234",
+            "commitDate": "2025-12-08",
+            "channel": "Stable",
+            "host": "x86_64-unknown-linux-gnu",
+            "short": "rustc 1.92.0 (ded5c06cf 2025-12-08)",
+            "llvmVersion": "21.1"
+        },
         "contractCrate": {
             "name": "lib",
             "version": "0.0.1"
@@ -104,7 +113,7 @@
             ]
         },
         {
-            "name": "getWegldIdentifier1",
+            "name": "getWegldIdentifier",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [
@@ -285,14 +294,87 @@
                     "type": "bytes"
                 },
                 {
-                    "name": "opt_take_profit_percentage",
-                    "type": "optional<u64>",
-                    "multi_arg": true
+                    "name": "take_profit_percentage",
+                    "type": "u64"
                 }
             ],
             "outputs": []
         },
         {
+            "name": "modifyStrategy",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "amount_per_swap",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "frequency",
+                    "type": "bytes"
+                },
+                {
+                    "name": "take_profit_percentage",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "deleteStrategy",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "deposit",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "withdraw",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "token_withdrawn",
+                    "type": "TokenWithdrawn"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "View to get the strategy token attributes for a given nonce",
+                "",
+                "### Arguments",
+                "* `nonce` - The nonce of the strategy token NFT",
+                "",
+                "### Returns",
+                "A `StrategyTokenAttributesAsType` containing the attributes of the strategy token:",
+                "* `amount_per_swap`: The amount to be swapped in each DCA operation",
+                "* `dca_frequency`: The frequency of the DCA operations",
+                "* `frequency_in_millis`: The frequency in milliseconds",
+                "* `take_profit_percentage`: The take profit percentage",
+                "* `usdc_balance`: The USDC balance associated with the strategy",
+                "* `token_balance`: The token balance associated with the strategy",
+                "* `last_executed_ts_millis`: The timestamp of the last execution in milliseconds"
+            ],
             "name": "getStrategyTokenAttributes",
             "mutability": "readonly",
             "inputs": [
@@ -322,6 +404,22 @@
                 },
                 {
                     "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getAccountStrategies",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "variadic<multi<BigUint,bytes,u64,u64,BigUint,BigUint,u64>>",
+                    "multi_result": true
                 }
             ]
         }
@@ -427,11 +525,140 @@
                     "name": "nonce",
                     "type": "u64",
                     "indexed": true
+                },
+                {
+                    "name": "amount_per_swap",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "frequency",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "take_profit_percentage",
+                    "type": "u64",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "strategyModified",
+            "inputs": [
+                {
+                    "name": "modifier",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "amount_per_swap",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "frequency",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "take_profit_percentage",
+                    "type": "u64",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "strategyDeleted",
+            "inputs": [
+                {
+                    "name": "deleter",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "usdc_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "token_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "depositMade",
+            "inputs": [
+                {
+                    "name": "depositor",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "usdc_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "withdrawalMade",
+            "inputs": [
+                {
+                    "name": "withdrawer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "token",
+                    "type": "EgldOrEsdtTokenIdentifier",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint",
+                    "indexed": true
                 }
             ]
         }
     ],
     "esdtAttributes": [],
     "hasCallback": true,
-    "types": {}
+    "types": {
+        "TokenWithdrawn": {
+            "type": "enum",
+            "variants": [
+                {
+                    "name": "Usdc",
+                    "discriminant": 1
+                },
+                {
+                    "name": "DcaToken",
+                    "discriminant": 2
+                }
+            ]
+        }
+    }
 }
