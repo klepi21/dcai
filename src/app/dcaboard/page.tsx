@@ -171,61 +171,62 @@ export default function DCABoard() {
       for (let i = 0; i < dcaiTokens.length; i++) {
         if (!isMountedRef.current) break; // Stop if component unmounted
         
-        const dcaiToken = dcaiTokens[i];
-        // Extract nonce from token - use the nonce field directly (it's already in decimal)
-        // or fallback to parsing from identifier if nonce field is not available
-        const identifier = dcaiToken.identifier || dcaiToken.tokenIdentifier || '';
-        let nonce: number;
-        
-        if (dcaiToken.nonce !== undefined && dcaiToken.nonce !== null) {
-          // Use the nonce field directly (already in decimal format)
-          nonce = typeof dcaiToken.nonce === 'string' ? parseInt(dcaiToken.nonce, 10) : dcaiToken.nonce;
-        } else {
-          // Fallback: Extract nonce from token identifier (format: "COLLECTION-NONCE" where NONCE is hex)
-          // e.g., "DCAIWEGLD-5b41d1-01" -> nonce is 1 (from "01")
-          const nonceHex = identifier.split('-').pop() || '';
-          try {
-            // Parse hex nonce to decimal (e.g., "01" -> 1, "0a" -> 10)
-            nonce = parseInt(nonceHex, 16);
-          } catch (error) {
-            continue;
+        try {
+          const dcaiToken = dcaiTokens[i];
+          // Extract nonce from token - use the nonce field directly (it's already in decimal)
+          // or fallback to parsing from identifier if nonce field is not available
+          const identifier = dcaiToken.identifier || dcaiToken.tokenIdentifier || '';
+          let nonce: number;
+          
+          if (dcaiToken.nonce !== undefined && dcaiToken.nonce !== null) {
+            // Use the nonce field directly (already in decimal format)
+            nonce = typeof dcaiToken.nonce === 'string' ? parseInt(dcaiToken.nonce, 10) : dcaiToken.nonce;
+          } else {
+            // Fallback: Extract nonce from token identifier (format: "COLLECTION-NONCE" where NONCE is hex)
+            // e.g., "DCAIWEGLD-5b41d1-01" -> nonce is 1 (from "01")
+            const nonceHex = identifier.split('-').pop() || '';
+            try {
+              // Parse hex nonce to decimal (e.g., "01" -> 1, "0a" -> 10)
+              nonce = parseInt(nonceHex, 16);
+            } catch (error) {
+              continue; // Skip this token if we can't parse nonce
+            }
           }
-        }
-        
-        if (isNaN(nonce) || nonce === 0) {
-          continue;
-        }
+          
+          if (isNaN(nonce) || nonce === 0) {
+            continue; // Skip nonce 0 (invalid strategy token)
+          }
 
-        // Get the owner address (this is the contract address for this strategy)
-        const contractAddress = dcaiToken.owner;
-        if (!contractAddress) {
-          continue;
-        }
+          // Get the owner address (this is the contract address for this strategy)
+          const contractAddress = dcaiToken.owner;
+          if (!contractAddress) {
+            continue; // Skip if no owner address
+          }
 
-        // Add delay between calls (0.35 seconds) except for the first one
-        if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 350));
-        }
+          // Add delay between calls (0.35 seconds) except for the first one
+          if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 350));
+          }
 
-        if (!isMountedRef.current) break; // Check again after delay
+          if (!isMountedRef.current) break; // Check again after delay
 
-        // Extract token info before calling queryGetStrategyTokenAttributes
-        const collection = dcaiToken.collection || '';
-        const tokenTicker = collection.split('-')[0]?.replace('DCAI', '') || identifier.split('-')[0]?.replace('DCAI', '') || 'UNKNOWN';
-        
-        // Use the owner address as the contract address for this strategy
-        const attributes = await queryGetStrategyTokenAttributes(nonce, contractAddress, {
-          identifier,
-          collection,
-          ticker: tokenTicker,
-          decimals: dcaiToken.decimals
-        });
-        
-        if (!isMountedRef.current) break; // Check after async call
-        
-        if (attributes) {
-          // Get network path for token images
-          let networkPathForImages = 'devnet';
+          // Extract token info before calling queryGetStrategyTokenAttributes
+          const collection = dcaiToken.collection || '';
+          const tokenTicker = collection.split('-')[0]?.replace('DCAI', '') || identifier.split('-')[0]?.replace('DCAI', '') || 'UNKNOWN';
+          
+          // Use the owner address as the contract address for this strategy
+          const attributes = await queryGetStrategyTokenAttributes(nonce, contractAddress, {
+            identifier,
+            collection,
+            ticker: tokenTicker,
+            decimals: dcaiToken.decimals
+          });
+          
+          if (!isMountedRef.current) break; // Check after async call
+          
+          if (attributes) {
+            // Get network path for token images
+            let networkPathForImages = 'devnet';
           if (network.apiAddress) {
             if (network.apiAddress.includes('devnet')) {
               networkPathForImages = 'devnet';
@@ -265,22 +266,27 @@ export default function DCABoard() {
           // Convert last executed timestamp from milliseconds to human-readable format
           const lastExecutedTsMillis = attributes.lastExecutedTsMillis;
           
-          const strategy: DcaStrategy = {
-            id: `${identifier}-${nonce}`, // Use identifier-nonce as unique ID
-            token: tokenTicker,
-            tokenIdentifier: identifier,
-            tokenLogo: `https://tools.multiversx.com/assets-cdn/${networkPathForImages}/tokens/${iconIdentifier}/icon.png`,
-            frequency: attributes.dcaFrequency || 'Unknown',
-            amountPerDca: amountPerSwap,
-            takeProfitPct: takeProfitPercentage > 0 ? takeProfitPercentage : undefined,
-            isActive: true, // You might want to check if strategy is active based on some condition
-            availableUsdc: usdcBalance,
-            tokenBalance: tokenBalance,
-            lastExecutedTsMillis: lastExecutedTsMillis,
-            contractAddress: contractAddress // Store the contract address for deposit/withdraw
-          };
-          
-          strategiesData.push(strategy);
+            const strategy: DcaStrategy = {
+              id: `${identifier}-${nonce}`, // Use identifier-nonce as unique ID
+              token: tokenTicker,
+              tokenIdentifier: identifier,
+              tokenLogo: `https://tools.multiversx.com/assets-cdn/${networkPathForImages}/tokens/${iconIdentifier}/icon.png`,
+              frequency: attributes.dcaFrequency || 'Unknown',
+              amountPerDca: amountPerSwap,
+              takeProfitPct: takeProfitPercentage > 0 ? takeProfitPercentage : undefined,
+              isActive: true, // You might want to check if strategy is active based on some condition
+              availableUsdc: usdcBalance,
+              tokenBalance: tokenBalance,
+              lastExecutedTsMillis: lastExecutedTsMillis,
+              contractAddress: contractAddress // Store the contract address for deposit/withdraw
+            };
+            
+            strategiesData.push(strategy);
+          }
+        } catch (error) {
+          // If one strategy fails, continue with the next one
+          // Don't let one error prevent other strategies from loading
+          continue;
         }
       }
       
@@ -297,12 +303,12 @@ export default function DCABoard() {
 
   // Fetch strategies when address, network, or setups change
   useEffect(() => {
+    // Reset mounted ref when effect runs
+    isMountedRef.current = true;
     fetchUserDcaiTokens();
     
-    // Cleanup function to prevent state updates if component unmounts
-    return () => {
-      isMountedRef.current = false;
-    };
+    // Cleanup function - only set to false if component actually unmounts
+    // Don't set to false on dependency changes, as that would prevent state updates
   }, [address, network.apiAddress, setups]); // Added setups to find matching dcaToken
   
   // Reset mounted ref when component mounts
@@ -374,10 +380,9 @@ export default function DCABoard() {
             }
           }
           
-          // Set default amount to the minimum
-          const minAmountUsdc = parseFloat(selectedSetup.minAmountPerSwap);
-          if (minAmountUsdc > 0 && (!amountPerDca || parseFloat(amountPerDca) < minAmountUsdc)) {
-            setAmountPerDca(minAmountUsdc.toFixed(2));
+          // Set default amount to 1 USDC (not the minimum)
+          if (!amountPerDca) {
+            setAmountPerDca('1.00');
           }
         }
         
@@ -412,17 +417,23 @@ export default function DCABoard() {
     try {
       setIsCreatingStrategy(true);
       
-      await createStrategy(
+      const { sessionId } = await createStrategy(
         contractAddress,
         parsedAmount,
         frequency,
         parsedTakeProfit
       );
 
-      // Reset form on success
-      setAmountPerDca('50');
+      // Reset form
+      setAmountPerDca('1.00');
       setShowTakeProfit(false);
       setTakeProfitPct('15');
+      
+      // Wait for transaction success and then refetch
+      const success = await waitForTransactionSuccess(sessionId);
+      if (success && isMountedRef.current) {
+        fetchUserDcaiTokens();
+      }
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to create strategy');
     } finally {
@@ -764,10 +775,8 @@ export default function DCABoard() {
                                   if (selectedSetup.allowedFrequencies && selectedSetup.allowedFrequencies.length > 0) {
                                     setFrequency(selectedSetup.allowedFrequencies[0].frequency);
                                   }
-                                  const minAmountUsdc = parseFloat(selectedSetup.minAmountPerSwap);
-                                  if (minAmountUsdc > 0) {
-                                    setAmountPerDca(minAmountUsdc.toFixed(2));
-                                  }
+                                  // Set default amount to 1 USDC (not the minimum)
+                                  setAmountPerDca('1.00');
                                 }
                               }}
                               className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[hsl(var(--gray-300)/0.1)] ${
@@ -944,6 +953,8 @@ export default function DCABoard() {
                     const isExpanded = expandedGroups.has(groupKey);
                     const currentIndex = strategyIndices[groupKey] || 0;
                     const currentStrategy = tokenStrategies[currentIndex];
+                    // Use first strategy for header image (always available)
+                    const headerStrategy = tokenStrategies[0];
 
                     return (
                       <div
@@ -969,9 +980,9 @@ export default function DCABoard() {
                           className='w-full flex items-center justify-between p-4 text-left hover:bg-[hsl(var(--gray-300)/0.05)] transition-colors'
                         >
                           <div className='flex items-center gap-2'>
-                            {currentStrategy.tokenLogo && (
+                            {headerStrategy?.tokenLogo ? (
                               <Image
-                                src={currentStrategy.tokenLogo}
+                                src={headerStrategy.tokenLogo}
                                 alt={token}
                                 width={24}
                                 height={24}
@@ -981,7 +992,7 @@ export default function DCABoard() {
                                   target.style.display = 'none';
                                 }}
                               />
-                            )}
+                            ) : null}
                             <div className='flex flex-col'>
                               <span className='font-medium text-sm'>
                                 {token} DCA

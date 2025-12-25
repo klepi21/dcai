@@ -78,12 +78,12 @@ export const useCreateStrategy = () => {
       }
     );
 
-    const sessionId = await signAndSendTransactions({
+    const { sessionId } = await signAndSendTransactions({
       transactions: [createStrategyTransaction],
       transactionsDisplayInfo: CREATE_STRATEGY_TRANSACTION_INFO
     });
 
-    return sessionId;
+    return { sessionId };
   };
 
   return {
