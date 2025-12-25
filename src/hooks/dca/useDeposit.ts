@@ -77,12 +77,12 @@ export const useDeposit = () => {
         version: 1
       });
 
-      const sessionId = await signAndSendTransactions({
+      const { sessionId } = await signAndSendTransactions({
         transactions: [depositTransaction],
         transactionsDisplayInfo: DEPOSIT_TRANSACTION_INFO
       });
 
-      return sessionId;
+      return { sessionId };
     } catch (error) {
       console.error('Error in deposit function:', error);
       throw error;

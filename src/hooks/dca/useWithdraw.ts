@@ -86,12 +86,12 @@ export const useWithdraw = () => {
         version: 1
       });
 
-      const sessionId = await signAndSendTransactions({
+      const { sessionId } = await signAndSendTransactions({
         transactions: [withdrawTransaction],
         transactionsDisplayInfo: WITHDRAW_TRANSACTION_INFO
       });
 
-      return sessionId;
+      return { sessionId };
     } catch (error) {
       console.error('Error in withdraw function:', error);
       throw error;

@@ -53,20 +53,18 @@ export const useCreateStrategy = () => {
     const usdcDecimals = 1000000; // 10^6
     const amountPerSwapInSmallestUnits = BigInt(Math.floor(amountPerSwap * usdcDecimals));
 
-    // Prepare arguments
+    // Prepare arguments - all 3 are required by the ABI
     // frequency is bytes type, so pass as string (SDK will encode it)
+    // take_profit_percentage is required (u64), use 0 if not provided
+    const takeProfitBasisPoints = takeProfitPercentage !== undefined && takeProfitPercentage > 0
+      ? BigInt(Math.floor(takeProfitPercentage * 1000)) // Convert percentage to basis points (multiply by 1000)
+      : BigInt(0); // Use 0 if not provided (e.g., 15% -> 15000 basis points)
+
     const args: any[] = [
       amountPerSwapInSmallestUnits, // BigUint: amount_per_swap
-      frequency // bytes: frequency (string, SDK will encode to bytes)
+      frequency, // bytes: frequency (string, SDK will encode to bytes)
+      takeProfitBasisPoints // u64: take_profit_percentage (required, use 0 if not set)
     ];
-
-    // Add optional take profit percentage if provided
-    if (takeProfitPercentage !== undefined && takeProfitPercentage > 0) {
-      // Convert percentage to basis points (multiply by 1000)
-      // e.g., 15% -> 15000 basis points
-      const takeProfitBasisPoints = BigInt(Math.floor(takeProfitPercentage * 1000));
-      args.push(takeProfitBasisPoints); // optional<u64>: opt_take_profit_percentage
-    }
 
     // Create transaction with function arguments
     // The SDK expects arguments to be passed as 'arguments' parameter

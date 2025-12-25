@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { useDcaContract, useCreateStrategy, useDeposit, useWithdraw, useDeleteStrategy } from '@/hooks';
-import { useGetAccount, useGetNetworkConfig, Address } from '@/lib';
+import { useDcaContract, useCreateStrategy, useDeposit, useWithdraw, useDeleteStrategy, useModifyStrategy } from '@/hooks';
+import { useGetAccount, useGetNetworkConfig, Address, getActiveTransactionsStatus, TransactionManager } from '@/lib';
 
 interface MultiversXToken {
   identifier: string;
@@ -38,6 +38,7 @@ export default function DCABoard() {
   const { deposit } = useDeposit();
   const { withdraw } = useWithdraw();
   const { deleteStrategy } = useDeleteStrategy();
+  const { modifyStrategy } = useModifyStrategy();
   const [isCreatingStrategy, setIsCreatingStrategy] = useState(false);
   const [strategies, setStrategies] = useState<DcaStrategy[]>([]);
   const [tokens, setTokens] = useState<MultiversXToken[]>([]);
@@ -64,6 +65,25 @@ export default function DCABoard() {
     asset: null,
     amount: ''
   });
+  // State for modify strategy modal
+  const [modifyModal, setModifyModal] = useState<{ 
+    isOpen: boolean; 
+    strategyId: string | null; 
+    amountPerDca: string; 
+    frequency: string; 
+    takeProfitPct: string;
+    showTakeProfit: boolean;
+  }>({
+    isOpen: false,
+    strategyId: null,
+    amountPerDca: '',
+    frequency: '',
+    takeProfitPct: '',
+    showTakeProfit: false
+  });
+  
+  // Ref to track if component is mounted
+  const isMountedRef = useRef(true);
   
   // Auto-expand first group when strategies change
   useEffect(() => {
@@ -101,187 +121,197 @@ export default function DCABoard() {
   };
 
   // Fetch user's Meta ESDT tokens starting with "DCAI"
-  // Only run once when address changes, not continuously
-  useEffect(() => {
-    let isMounted = true;
-    
-    const fetchUserDcaiTokens = async () => {
-      if (!address) {
+  // This function is extracted so it can be called manually after transactions
+  const fetchUserDcaiTokens = async () => {
+    if (!address) {
+      if (isMountedRef.current) {
         setStrategies([]);
-        return;
+      }
+      return;
+    }
+
+    try {
+      // Determine API URL based on network
+      let apiUrl = 'https://devnet-api.multiversx.com';
+      if (network.apiAddress) {
+        if (network.apiAddress.includes('devnet')) {
+          apiUrl = 'https://devnet-api.multiversx.com';
+        } else if (network.apiAddress.includes('testnet')) {
+          apiUrl = 'https://testnet-api.multiversx.com';
+        } else {
+          apiUrl = 'https://api.multiversx.com';
+        }
       }
 
-      try {
-        // Determine API URL based on network
-        let apiUrl = 'https://devnet-api.multiversx.com';
-        if (network.apiAddress) {
-          if (network.apiAddress.includes('devnet')) {
-            apiUrl = 'https://devnet-api.multiversx.com';
-          } else if (network.apiAddress.includes('testnet')) {
-            apiUrl = 'https://testnet-api.multiversx.com';
-          } else {
-            apiUrl = 'https://api.multiversx.com';
+      // ONE API call to get all Meta ESDT tokens
+      const tokensUrl = `${apiUrl}/accounts/${address}/tokens?includeMetaESDT=true`;
+      
+      const response = await fetch(tokensUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tokens: ${response.status} - ${response.statusText}`);
+      }
+
+      const tokensData = await response.json();
+      
+      // Filter tokens that start with "DCAI"
+      const dcaiTokens = tokensData.filter((token: any) => {
+        const identifier = token.identifier || token.tokenIdentifier || '';
+        return identifier.startsWith('DCAI');
+      });
+
+      // Fetch strategy attributes for each DCAI token with 0.35s delay between calls
+      const strategiesData: DcaStrategy[] = [];
+      
+      for (let i = 0; i < dcaiTokens.length; i++) {
+        if (!isMountedRef.current) break; // Stop if component unmounted
+        
+        const dcaiToken = dcaiTokens[i];
+        // Extract nonce from token - use the nonce field directly (it's already in decimal)
+        // or fallback to parsing from identifier if nonce field is not available
+        const identifier = dcaiToken.identifier || dcaiToken.tokenIdentifier || '';
+        let nonce: number;
+        
+        if (dcaiToken.nonce !== undefined && dcaiToken.nonce !== null) {
+          // Use the nonce field directly (already in decimal format)
+          nonce = typeof dcaiToken.nonce === 'string' ? parseInt(dcaiToken.nonce, 10) : dcaiToken.nonce;
+        } else {
+          // Fallback: Extract nonce from token identifier (format: "COLLECTION-NONCE" where NONCE is hex)
+          // e.g., "DCAIWEGLD-5b41d1-01" -> nonce is 1 (from "01")
+          const nonceHex = identifier.split('-').pop() || '';
+          try {
+            // Parse hex nonce to decimal (e.g., "01" -> 1, "0a" -> 10)
+            nonce = parseInt(nonceHex, 16);
+          } catch (error) {
+            continue;
           }
         }
-
-        // ONE API call to get all Meta ESDT tokens
-        const tokensUrl = `${apiUrl}/accounts/${address}/tokens?includeMetaESDT=true`;
         
-        const response = await fetch(tokensUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch tokens: ${response.status} - ${response.statusText}`);
+        if (isNaN(nonce) || nonce === 0) {
+          continue;
         }
 
-        const tokensData = await response.json();
-        
-        // Filter tokens that start with "DCAI"
-        const dcaiTokens = tokensData.filter((token: any) => {
-          const identifier = token.identifier || token.tokenIdentifier || '';
-          return identifier.startsWith('DCAI');
-        });
+        // Get the owner address (this is the contract address for this strategy)
+        const contractAddress = dcaiToken.owner;
+        if (!contractAddress) {
+          continue;
+        }
 
-        // Fetch strategy attributes for each DCAI token with 0.35s delay between calls
-        const strategiesData: DcaStrategy[] = [];
+        // Add delay between calls (0.35 seconds) except for the first one
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 350));
+        }
+
+        if (!isMountedRef.current) break; // Check again after delay
+
+        // Extract token info before calling queryGetStrategyTokenAttributes
+        const collection = dcaiToken.collection || '';
+        const tokenTicker = collection.split('-')[0]?.replace('DCAI', '') || identifier.split('-')[0]?.replace('DCAI', '') || 'UNKNOWN';
         
-        for (let i = 0; i < dcaiTokens.length; i++) {
-          if (!isMounted) break; // Stop if component unmounted
-          
-          const dcaiToken = dcaiTokens[i];
-          // Extract nonce from token - use the nonce field directly (it's already in decimal)
-          // or fallback to parsing from identifier if nonce field is not available
-          const identifier = dcaiToken.identifier || dcaiToken.tokenIdentifier || '';
-          let nonce: number;
-          
-          if (dcaiToken.nonce !== undefined && dcaiToken.nonce !== null) {
-            // Use the nonce field directly (already in decimal format)
-            nonce = typeof dcaiToken.nonce === 'string' ? parseInt(dcaiToken.nonce, 10) : dcaiToken.nonce;
-          } else {
-            // Fallback: Extract nonce from token identifier (format: "COLLECTION-NONCE" where NONCE is hex)
-            // e.g., "DCAIWEGLD-5b41d1-01" -> nonce is 1 (from "01")
-            const nonceHex = identifier.split('-').pop() || '';
-            try {
-              // Parse hex nonce to decimal (e.g., "01" -> 1, "0a" -> 10)
-              nonce = parseInt(nonceHex, 16);
-            } catch (error) {
-              continue;
+        // Use the owner address as the contract address for this strategy
+        const attributes = await queryGetStrategyTokenAttributes(nonce, contractAddress, {
+          identifier,
+          collection,
+          ticker: tokenTicker,
+          decimals: dcaiToken.decimals
+        });
+        
+        if (!isMountedRef.current) break; // Check after async call
+        
+        if (attributes) {
+          // Get network path for token images
+          let networkPathForImages = 'devnet';
+          if (network.apiAddress) {
+            if (network.apiAddress.includes('devnet')) {
+              networkPathForImages = 'devnet';
+            } else if (network.apiAddress.includes('testnet')) {
+              networkPathForImages = 'testnet';
+            } else {
+              networkPathForImages = 'mainnet';
             }
           }
           
-          if (isNaN(nonce) || nonce === 0) {
-            continue;
-          }
-
-          // Get the owner address (this is the contract address for this strategy)
-          const contractAddress = dcaiToken.owner;
-          if (!contractAddress) {
-            continue;
-          }
-
-          // Add delay between calls (0.35 seconds) except for the first one
-          if (i > 0) {
-            await new Promise(resolve => setTimeout(resolve, 350));
-          }
-
-          if (!isMounted) break; // Check again after delay
-
-          // Extract token info before calling queryGetStrategyTokenAttributes
-          const collection = dcaiToken.collection || '';
-          const tokenTicker = collection.split('-')[0]?.replace('DCAI', '') || identifier.split('-')[0]?.replace('DCAI', '') || 'UNKNOWN';
-          
-          // Use the owner address as the contract address for this strategy
-          const attributes = await queryGetStrategyTokenAttributes(nonce, contractAddress, {
-            identifier,
-            collection,
-            ticker: tokenTicker,
-            decimals: dcaiToken.decimals
+          // Find the setup that matches this token ticker to get the correct dcaToken for the image
+          const matchingSetup = setups?.find(s => {
+            const setupTicker = s.dcaToken.split('-')[0];
+            return setupTicker === tokenTicker;
           });
+          // Use dcaToken from matching setup, or if not found, try to construct from ticker
+          // If we can't find a match, we'll use the collection as fallback but that's not ideal
+          const iconIdentifier = matchingSetup?.dcaToken || (tokenTicker !== 'UNKNOWN' ? tokenTicker : collection);
           
-          if (!isMounted) break; // Check after async call
+          // Convert USDC balance from smallest units (6 decimals) to readable format
+          const usdcDecimals = 1000000; // 10^6
+          const usdcBalance = parseFloat(attributes.usdcBalance) / usdcDecimals;
           
-          if (attributes) {
-            // Get network path for token images
-            let networkPathForImages = 'devnet';
-            if (network.apiAddress) {
-              if (network.apiAddress.includes('devnet')) {
-                networkPathForImages = 'devnet';
-              } else if (network.apiAddress.includes('testnet')) {
-                networkPathForImages = 'testnet';
-              } else {
-                networkPathForImages = 'mainnet';
-              }
-            }
-            
-            // Use dcaToken from setup if available, otherwise use collection
-            // Find the setup that matches this token ticker
-            const matchingSetup = setups?.find(s => {
-              const setupTicker = s.dcaToken.split('-')[0];
-              return setupTicker === tokenTicker;
-            });
-            const iconIdentifier = matchingSetup?.dcaToken || collection;
-            
-            // Convert USDC balance from smallest units (6 decimals) to readable format
-            const usdcDecimals = 1000000; // 10^6
-            const usdcBalance = parseFloat(attributes.usdcBalance) / usdcDecimals;
-            
-            // Convert token balance (assuming 18 decimals for wrapped tokens, but check token decimals)
-            const tokenDecimals = dcaiToken.decimals || 18;
-            const tokenDecimalsMultiplier = 10 ** tokenDecimals;
-            const tokenBalance = parseFloat(attributes.tokenBalance) / tokenDecimalsMultiplier;
-            
-            // Convert amount per swap from smallest units to readable format
-            const amountPerSwap = parseFloat(attributes.amountPerSwap) / usdcDecimals;
-            
-            // Parse take profit percentage (it's a u64, stored with 3 decimal places)
-            // e.g., 20000 = 20%, so divide by 1000 to get percentage
-            const takeProfitPct = parseFloat(attributes.takeProfitPercentage);
-            const takeProfitPercentage = takeProfitPct > 0 ? takeProfitPct / 1000 : 0;
-            
-            // Convert last executed timestamp from milliseconds to human-readable format
-            const lastExecutedTsMillis = attributes.lastExecutedTsMillis;
-            
-            const strategy: DcaStrategy = {
-              id: `${identifier}-${nonce}`, // Use identifier-nonce as unique ID
-              token: tokenTicker,
-              tokenIdentifier: identifier,
-              tokenLogo: `https://tools.multiversx.com/assets-cdn/${networkPathForImages}/tokens/${iconIdentifier}/icon.png`,
-              frequency: attributes.dcaFrequency || 'Unknown',
-              amountPerDca: amountPerSwap,
-              takeProfitPct: takeProfitPercentage > 0 ? takeProfitPercentage : undefined,
-              isActive: true, // You might want to check if strategy is active based on some condition
-              availableUsdc: usdcBalance,
-              tokenBalance: tokenBalance,
-              lastExecutedTsMillis: lastExecutedTsMillis,
-              contractAddress: contractAddress // Store the contract address for deposit/withdraw
-            };
-            
-            strategiesData.push(strategy);
-          }
-        }
-        
-        if (isMounted) {
-          setStrategies(strategiesData);
-        }
-
-      } catch (error) {
-        if (isMounted) {
-          setStrategies([]);
+          // Convert token balance (assuming 18 decimals for wrapped tokens, but check token decimals)
+          const tokenDecimals = dcaiToken.decimals || 18;
+          const tokenDecimalsMultiplier = 10 ** tokenDecimals;
+          const tokenBalance = parseFloat(attributes.tokenBalance) / tokenDecimalsMultiplier;
+          
+          // Convert amount per swap from smallest units to readable format
+          const amountPerSwap = parseFloat(attributes.amountPerSwap) / usdcDecimals;
+          
+          // Parse take profit percentage (it's a u64, stored with 3 decimal places)
+          // e.g., 20000 = 20%, so divide by 1000 to get percentage
+          const takeProfitPct = parseFloat(attributes.takeProfitPercentage);
+          const takeProfitPercentage = takeProfitPct > 0 ? takeProfitPct / 1000 : 0;
+          
+          // Convert last executed timestamp from milliseconds to human-readable format
+          const lastExecutedTsMillis = attributes.lastExecutedTsMillis;
+          
+          const strategy: DcaStrategy = {
+            id: `${identifier}-${nonce}`, // Use identifier-nonce as unique ID
+            token: tokenTicker,
+            tokenIdentifier: identifier,
+            tokenLogo: `https://tools.multiversx.com/assets-cdn/${networkPathForImages}/tokens/${iconIdentifier}/icon.png`,
+            frequency: attributes.dcaFrequency || 'Unknown',
+            amountPerDca: amountPerSwap,
+            takeProfitPct: takeProfitPercentage > 0 ? takeProfitPercentage : undefined,
+            isActive: true, // You might want to check if strategy is active based on some condition
+            availableUsdc: usdcBalance,
+            tokenBalance: tokenBalance,
+            lastExecutedTsMillis: lastExecutedTsMillis,
+            contractAddress: contractAddress // Store the contract address for deposit/withdraw
+          };
+          
+          strategiesData.push(strategy);
         }
       }
-    };
+      
+      if (isMountedRef.current) {
+        setStrategies(strategiesData);
+      }
 
+    } catch (error) {
+      if (isMountedRef.current) {
+        setStrategies([]);
+      }
+    }
+  };
+
+  // Fetch strategies when address, network, or setups change
+  useEffect(() => {
     fetchUserDcaiTokens();
     
     // Cleanup function to prevent state updates if component unmounts
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
     };
   }, [address, network.apiAddress, setups]); // Added setups to find matching dcaToken
+  
+  // Reset mounted ref when component mounts
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Load tokens and setup from smart contract
   useEffect(() => {
@@ -376,7 +406,8 @@ export default function DCABoard() {
     // Address is already in bech32 format (erd1...)
     const contractAddress = selectedSetup.address;
 
-    const parsedTakeProfit = showTakeProfit ? Number(takeProfitPct) : undefined;
+    // Take profit is optional in UI but required in ABI (use 0 if not provided)
+    const parsedTakeProfit = showTakeProfit ? Number(takeProfitPct) : 0;
 
     try {
       setIsCreatingStrategy(true);
@@ -399,14 +430,61 @@ export default function DCABoard() {
     }
   };
 
-  const toggleStrategy = (id: string) => {
-    setStrategies((prev) =>
-      prev.map((strategy) =>
-        strategy.id === id
-          ? { ...strategy, isActive: !strategy.isActive }
-          : strategy
-      )
-    );
+  const handleModifyStrategy = (strategyId: string) => {
+    const strategy = strategies.find(s => s.id === strategyId);
+    if (!strategy) return;
+
+    setModifyModal({
+      isOpen: true,
+      strategyId,
+      amountPerDca: strategy.amountPerDca.toFixed(2),
+      frequency: strategy.frequency,
+      takeProfitPct: strategy.takeProfitPct !== undefined ? strategy.takeProfitPct.toFixed(1) : '',
+      showTakeProfit: strategy.takeProfitPct !== undefined
+    });
+  };
+
+  const handleModifyStrategySubmit = async () => {
+    if (!modifyModal.strategyId) return;
+
+    const strategy = strategies.find(s => s.id === modifyModal.strategyId);
+    if (!strategy) {
+      setModifyModal({ isOpen: false, strategyId: null, amountPerDca: '', frequency: '', takeProfitPct: '', showTakeProfit: false });
+      return;
+    }
+
+    const amountPerDca = parseFloat(modifyModal.amountPerDca);
+    if (isNaN(amountPerDca) || amountPerDca <= 0) {
+      return; // Validation handled in UI
+    }
+
+    const takeProfitPct = modifyModal.showTakeProfit && modifyModal.takeProfitPct 
+      ? parseFloat(modifyModal.takeProfitPct) 
+      : 0;
+
+    try {
+      const { sessionId } = await modifyStrategy(
+        strategy.contractAddress,
+        amountPerDca,
+        modifyModal.frequency,
+        takeProfitPct,
+        strategy.tokenIdentifier
+      );
+      setModifyModal({ isOpen: false, strategyId: null, amountPerDca: '', frequency: '', takeProfitPct: '', showTakeProfit: false });
+      
+      // Wait for transaction success and then refetch
+      const success = await waitForTransactionSuccess(sessionId);
+      if (success && isMountedRef.current) {
+        fetchUserDcaiTokens();
+      }
+    } catch (error) {
+      // Error handling is done by the transaction system
+      setModifyModal({ isOpen: false, strategyId: null, amountPerDca: '', frequency: '', takeProfitPct: '', showTakeProfit: false });
+    }
+  };
+
+  const handleModifyStrategyCancel = () => {
+    setModifyModal({ isOpen: false, strategyId: null, amountPerDca: '', frequency: '', takeProfitPct: '', showTakeProfit: false });
   };
 
   const handleDeleteStrategy = async (strategyId: string) => {
@@ -432,6 +510,48 @@ export default function DCABoard() {
     });
   };
 
+  // Helper function to wait for transaction success and then refetch
+  const waitForTransactionSuccess = async (sessionId: string) => {
+    const maxAttempts = 60; // Maximum polling attempts (60 seconds)
+    let attempts = 0;
+
+    const pollTransactionStatus = async (): Promise<boolean> => {
+      if (attempts >= maxAttempts) {
+        return false; // Timeout
+      }
+
+      try {
+        const transactionsStatus = getActiveTransactionsStatus();
+        
+        // Check if transaction is no longer in active transactions (completed)
+        // If it's not in the active list, it means it completed (success or failed)
+        // We'll check by looking for the sessionId in the status object
+        const hasTransaction = transactionsStatus && 
+          Object.values(transactionsStatus).some((tx: any) => 
+            tx && (tx.sessionId === sessionId || (Array.isArray(tx) && tx.some((t: any) => t?.sessionId === sessionId)))
+          );
+        
+        // If transaction is no longer active, it completed
+        // We assume success if it's no longer in active transactions
+        // (TransactionManager removes successful transactions from active list)
+        if (!hasTransaction) {
+          // Give a small delay to ensure blockchain state is updated
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return true;
+        }
+
+        // Transaction still pending, wait and retry
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        return pollTransactionStatus();
+      } catch (error) {
+        return false;
+      }
+    };
+
+    return pollTransactionStatus();
+  };
+
   const handleDepositSubmit = async () => {
     if (!depositModal.strategyId) return;
 
@@ -447,8 +567,14 @@ export default function DCABoard() {
     }
 
     try {
-      await deposit(strategy.contractAddress, amount, strategy.tokenIdentifier);
+      const { sessionId } = await deposit(strategy.contractAddress, amount, strategy.tokenIdentifier);
       setDepositModal({ isOpen: false, strategyId: null, amount: '' });
+      
+      // Wait for transaction success and then refetch
+      const success = await waitForTransactionSuccess(sessionId);
+      if (success && isMountedRef.current) {
+        fetchUserDcaiTokens();
+      }
     } catch (error) {
       // Error handling is done by the transaction system
       setDepositModal({ isOpen: false, strategyId: null, amount: '' });
@@ -483,8 +609,14 @@ export default function DCABoard() {
     }
 
     try {
-      await withdraw(strategy.contractAddress, amount, withdrawModal.asset, strategy.tokenIdentifier);
+      const { sessionId } = await withdraw(strategy.contractAddress, amount, withdrawModal.asset, strategy.tokenIdentifier);
       setWithdrawModal({ isOpen: false, strategyId: null, asset: null, amount: '' });
+      
+      // Wait for transaction success and then refetch
+      const success = await waitForTransactionSuccess(sessionId);
+      if (success && isMountedRef.current) {
+        fetchUserDcaiTokens();
+      }
     } catch (error) {
       // Error handling is done by the transaction system
       setWithdrawModal({ isOpen: false, strategyId: null, asset: null, amount: '' });
@@ -928,14 +1060,10 @@ export default function DCABoard() {
                                 <div className='flex items-center gap-2'>
                                   <button
                                     type='button'
-                                    onClick={() => toggleStrategy(currentStrategy.id)}
-                                    className={`inline-flex items-center px-3 py-1 text-xs font-medium transition-colors ${
-                                      currentStrategy.isActive
-                                        ? 'bg-[hsl(var(--sky-300))] text-black'
-                                        : 'bg-[hsl(var(--gray-300)/0.2)] text-[hsl(var(--gray-300)/0.8)]'
-                                    }`}
+                                    onClick={() => handleModifyStrategy(currentStrategy.id)}
+                                    className='inline-flex items-center px-3 py-1 text-xs font-medium transition-colors border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-foreground hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
                                   >
-                                    {currentStrategy.isActive ? 'Enabled' : 'Disabled'}
+                                    Modify Strategy
                                   </button>
                                   <button
                                     type='button'
@@ -1268,6 +1396,164 @@ export default function DCABoard() {
                   className='inline-flex items-center justify-center bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   Deposit
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Modify Strategy Modal */}
+      {modifyModal.isOpen && modifyModal.strategyId && (() => {
+        const strategy = strategies.find(s => s.id === modifyModal.strategyId);
+        if (!strategy) return null;
+
+        // Find the setup for this strategy's token to get allowed frequencies
+        const strategySetup = setups?.find(s => {
+          const setupTicker = s.dcaToken.split('-')[0];
+          return setupTicker === strategy.token;
+        });
+
+        const amountPerDca = parseFloat(modifyModal.amountPerDca);
+        const isValidAmount = !isNaN(amountPerDca) && amountPerDca > 0;
+        
+        // Get minimum amount from setup
+        const minAmount = strategySetup ? parseFloat(strategySetup.minAmountPerSwap) : 0;
+        const isValidAmountWithMin = isValidAmount && amountPerDca >= minAmount;
+
+        const takeProfitPct = modifyModal.showTakeProfit && modifyModal.takeProfitPct 
+          ? parseFloat(modifyModal.takeProfitPct) 
+          : 0;
+        const isValidTakeProfit = !modifyModal.showTakeProfit || (takeProfitPct >= 0 && takeProfitPct <= 100);
+
+        const isValid = isValidAmountWithMin && isValidTakeProfit && modifyModal.frequency;
+
+        return (
+          <div
+            className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'
+            onClick={handleModifyStrategyCancel}
+          >
+            <div
+              className='border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] p-6 shadow-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto'
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className='text-sm font-semibold tracking-tight mb-1'>
+                Modify Strategy
+              </h2>
+              <p className='text-xs text-[hsl(var(--gray-300)/0.7)] mb-4'>
+                Update your {strategy.token} DCA strategy settings
+              </p>
+
+              <div className='flex flex-col gap-4'>
+                {/* Frequency */}
+                <div className='flex flex-col gap-1'>
+                  <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
+                    Frequency
+                  </label>
+                  {strategySetup && strategySetup.allowedFrequencies && strategySetup.allowedFrequencies.length > 0 ? (
+                    <select
+                      value={modifyModal.frequency}
+                      onChange={(e) => setModifyModal({ ...modifyModal, frequency: e.target.value })}
+                      className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
+                    >
+                      {strategySetup.allowedFrequencies.map((freq, index) => (
+                        <option key={index} value={freq.frequency}>
+                          {freq.frequency}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type='text'
+                      value={modifyModal.frequency}
+                      onChange={(e) => setModifyModal({ ...modifyModal, frequency: e.target.value })}
+                      className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
+                      placeholder='Frequency'
+                    />
+                  )}
+                </div>
+
+                {/* Amount per DCA */}
+                <div className='flex flex-col gap-1'>
+                  <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
+                    USDC per DCA
+                    {minAmount > 0 && (
+                      <span className='text-[hsl(var(--gray-300)/0.6)] ml-1'>
+                        (Min: {minAmount.toFixed(2)} USDC)
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    type='number'
+                    min={minAmount.toFixed(2)}
+                    step='0.01'
+                    value={modifyModal.amountPerDca}
+                    onChange={(e) => setModifyModal({ ...modifyModal, amountPerDca: e.target.value })}
+                    className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
+                    placeholder='0.00'
+                  />
+                  {modifyModal.amountPerDca && !isValidAmountWithMin && (
+                    <p className='text-xs text-red-500'>
+                      {!isValidAmount 
+                        ? 'Please enter a valid amount greater than 0'
+                        : `Amount must be at least ${minAmount.toFixed(2)} USDC`
+                      }
+                    </p>
+                  )}
+                </div>
+
+                {/* Take Profit */}
+                <div className='flex flex-col gap-2'>
+                  <button
+                    type='button'
+                    onClick={() => setModifyModal({ ...modifyModal, showTakeProfit: !modifyModal.showTakeProfit })}
+                    className='flex items-center justify-between border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] p-3 text-left text-sm transition-colors hover:border-[hsl(var(--sky-300)/0.3)]'
+                  >
+                    <span className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
+                      Take-profit % (Optional)
+                    </span>
+                    <span className='text-[hsl(var(--sky-300))]'>
+                      {modifyModal.showTakeProfit ? '−' : '+'}
+                    </span>
+                  </button>
+                  
+                  {modifyModal.showTakeProfit && (
+                    <div className='flex flex-col gap-1 border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-3'>
+                      <input
+                        type='number'
+                        min='0'
+                        max='100'
+                        step='0.1'
+                        value={modifyModal.takeProfitPct}
+                        onChange={(e) => setModifyModal({ ...modifyModal, takeProfitPct: e.target.value })}
+                        className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
+                        placeholder='15'
+                      />
+                      {modifyModal.takeProfitPct && !isValidTakeProfit && (
+                        <p className='text-xs text-red-500'>
+                          Take profit must be between 0 and 100
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className='flex gap-3 justify-end mt-6'>
+                <button
+                  type='button'
+                  onClick={handleModifyStrategyCancel}
+                  className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
+                >
+                  Cancel
+                </button>
+                <button
+                  type='button'
+                  onClick={handleModifyStrategySubmit}
+                  disabled={!isValid}
+                  className='inline-flex items-center justify-center bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  Modify Strategy
                 </button>
               </div>
             </div>
