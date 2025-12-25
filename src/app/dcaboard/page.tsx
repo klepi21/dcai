@@ -49,6 +49,8 @@ export default function DCABoard() {
   const [showTakeProfit, setShowTakeProfit] = useState<boolean>(false);
   const [takeProfitPct, setTakeProfitPct] = useState<string>('15');
   const [isTokenDropdownOpen, setIsTokenDropdownOpen] = useState<boolean>(false);
+  const [isFrequencyDropdownOpen, setIsFrequencyDropdownOpen] = useState<boolean>(false);
+  const [isModifyFrequencyDropdownOpen, setIsModifyFrequencyDropdownOpen] = useState<boolean>(false);
   // State for expandable strategy groups
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [strategyIndices, setStrategyIndices] = useState<Record<string, number>>({});
@@ -81,6 +83,29 @@ export default function DCABoard() {
     takeProfitPct: '',
     showTakeProfit: false
   });
+  // State for delete confirmation modal
+  const [deleteModal, setDeleteModal] = useState<{ 
+    isOpen: boolean; 
+    strategyId: string | null;
+  }>({
+    isOpen: false,
+    strategyId: null
+  });
+  // State for user's USDC wallet balance
+  const [usdcWalletBalance, setUsdcWalletBalance] = useState<number>(0);
+  // State for frequency info tooltip
+  const [showFrequencyInfo, setShowFrequencyInfo] = useState<boolean>(false);
+  // State for activity items
+  const [activities, setActivities] = useState<Array<{
+    type: 'deposit' | 'createStrategy' | 'modifyStrategy' | 'deleteStrategy';
+    title: string;
+    description: string;
+    timestamp: number;
+    icon: string;
+  }>>([]);
+  // State for activity pagination
+  const [currentActivityPage, setCurrentActivityPage] = useState<number>(1);
+  const itemsPerPage = 6;
   
   // Ref to track if component is mounted
   const isMountedRef = useRef(true);
@@ -242,9 +267,21 @@ export default function DCABoard() {
             const setupTicker = s.dcaToken.split('-')[0];
             return setupTicker === tokenTicker;
           });
-          // Use dcaToken from matching setup, or if not found, try to construct from ticker
-          // If we can't find a match, we'll use the collection as fallback but that's not ideal
-          const iconIdentifier = matchingSetup?.dcaToken || (tokenTicker !== 'UNKNOWN' ? tokenTicker : collection);
+          
+          // Try to find the token in the tokens array (which has full identifiers with hash)
+          const tokenFromList = tokens.find(t => {
+            const tTicker = t.ticker || t.identifier?.split('-')[0];
+            return tTicker === tokenTicker;
+          });
+          
+          // Special case for WEGLD - use the correct identifier
+          let iconIdentifier: string;
+          if (tokenTicker === 'WEGLD') {
+            iconIdentifier = 'WEGLD-bd4d79';
+          } else {
+            // Use dcaToken from matching setup, or token identifier from tokens list, or fallback to ticker
+            iconIdentifier = matchingSetup?.dcaToken || tokenFromList?.identifier || (tokenTicker !== 'UNKNOWN' ? tokenTicker : collection);
+          }
           
           // Convert USDC balance from smallest units (6 decimals) to readable format
           const usdcDecimals = 1000000; // 10^6
@@ -301,6 +338,145 @@ export default function DCABoard() {
     }
   };
 
+  // Fetch activity transactions
+  const fetchActivity = async () => {
+    if (!address) {
+      setActivities([]);
+      return;
+    }
+
+    try {
+      // Determine API URL based on network
+      let apiUrl = 'https://devnet-api.multiversx.com';
+      if (network.apiAddress) {
+        if (network.apiAddress.includes('devnet')) {
+          apiUrl = 'https://devnet-api.multiversx.com';
+        } else if (network.apiAddress.includes('testnet')) {
+          apiUrl = 'https://testnet-api.multiversx.com';
+        } else {
+          apiUrl = 'https://api.multiversx.com';
+        }
+      }
+
+      const functions = ['deposit', 'createStrategy', 'modifyStrategy', 'deleteStrategy'];
+      const allActivities: Array<{
+        type: 'deposit' | 'createStrategy' | 'modifyStrategy' | 'deleteStrategy';
+        title: string;
+        description: string;
+        timestamp: number;
+        icon: string;
+      }> = [];
+
+      // Fetch transactions for each function with 0.35 second delay
+      for (let i = 0; i < functions.length; i++) {
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 350));
+        }
+
+        if (!isMountedRef.current) break;
+
+        const func = functions[i];
+        const transfersUrl = `${apiUrl}/accounts/${address}/transfers?status=success&function=${func}`;
+
+        try {
+          const response = await fetch(transfersUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            continue; // Skip this function if request fails
+          }
+
+          const transfers = await response.json();
+
+          // Process each transfer
+          for (const transfer of transfers) {
+            if (!transfer.action?.arguments) continue;
+
+            // Handle timestamp - could be in seconds or milliseconds
+            let timestamp = transfer.timestampMs || transfer.timestamp || Date.now();
+            // If timestamp is in seconds (less than year 2000 in ms), convert to milliseconds
+            if (timestamp < 946684800000) {
+              timestamp = timestamp * 1000;
+            }
+            const transfersList = transfer.action.arguments.transfers || [];
+            
+            let title = '';
+            let description = '';
+            let icon = '';
+
+            if (func === 'deposit') {
+              // Find USDC transfer
+              const usdcTransfer = transfersList.find((t: any) => t.ticker === 'USDC' || t.token?.startsWith('USDC-'));
+              const metaEsdtTransfer = transfersList.find((t: any) => t.type === 'MetaESDT');
+              
+              if (usdcTransfer) {
+                const usdcAmount = parseFloat(usdcTransfer.value || '0') / 1000000; // USDC has 6 decimals
+                const tokenName = metaEsdtTransfer?.name?.replace('DCAi', '') || metaEsdtTransfer?.ticker?.replace('DCAI', '') || 'token';
+                title = 'Deposit received';
+                description = `$${usdcAmount.toFixed(2)} USDC deposited to ${tokenName} strategy`;
+                icon = '+';
+              }
+            } else if (func === 'createStrategy') {
+              const metaEsdtTransfer = transfersList.find((t: any) => t.type === 'MetaESDT');
+              if (metaEsdtTransfer) {
+                const tokenName = metaEsdtTransfer.name?.replace('DCAi', '') || metaEsdtTransfer.ticker?.replace('DCAI', '') || 'token';
+                title = 'Strategy created';
+                description = `${tokenName} DCA strategy activated`;
+                icon = '⚙';
+              }
+            } else if (func === 'modifyStrategy') {
+              const metaEsdtTransfer = transfersList.find((t: any) => t.type === 'MetaESDT');
+              if (metaEsdtTransfer) {
+                const tokenName = metaEsdtTransfer.name?.replace('DCAi', '') || metaEsdtTransfer.ticker?.replace('DCAI', '') || 'token';
+                title = 'Strategy modified';
+                description = `${tokenName} DCA strategy updated`;
+                icon = '⚙';
+              }
+            } else if (func === 'deleteStrategy') {
+              const metaEsdtTransfer = transfersList.find((t: any) => t.type === 'MetaESDT');
+              if (metaEsdtTransfer) {
+                const tokenName = metaEsdtTransfer.name?.replace('DCAi', '') || metaEsdtTransfer.ticker?.replace('DCAI', '') || 'token';
+                title = 'Strategy deleted';
+                description = `${tokenName} DCA strategy removed`;
+                icon = '×';
+              }
+            }
+
+            if (title && description) {
+              allActivities.push({
+                type: func as 'deposit' | 'createStrategy' | 'modifyStrategy' | 'deleteStrategy',
+                title,
+                description,
+                timestamp,
+                icon
+              });
+            }
+          }
+        } catch (error) {
+          // Continue with next function if this one fails
+          continue;
+        }
+      }
+
+      // Sort by timestamp (newest first)
+      allActivities.sort((a, b) => b.timestamp - a.timestamp);
+
+      if (isMountedRef.current) {
+        setActivities(allActivities);
+        // Reset to page 1 when activities change
+        setCurrentActivityPage(1);
+      }
+    } catch (error) {
+      if (isMountedRef.current) {
+        setActivities([]);
+      }
+    }
+  };
+
   // Fetch strategies when address, network, or setups change
   useEffect(() => {
     // Reset mounted ref when effect runs
@@ -310,6 +486,19 @@ export default function DCABoard() {
     // Cleanup function - only set to false if component actually unmounts
     // Don't set to false on dependency changes, as that would prevent state updates
   }, [address, network.apiAddress, setups]); // Added setups to find matching dcaToken
+
+  // Fetch activity AFTER strategies have been loaded
+  useEffect(() => {
+    // Only fetch activity if we have address, strategies are loaded (not loading), and setups are available
+    if (address && !loadingSetup && setups && setups.length > 0 && strategies.length >= 0) {
+      // Small delay to ensure all other data is loaded first
+      const timeoutId = setTimeout(() => {
+        fetchActivity();
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [address, loadingSetup, setups, strategies.length]);
   
   // Reset mounted ref when component mounts
   useEffect(() => {
@@ -433,6 +622,10 @@ export default function DCABoard() {
       const success = await waitForTransactionSuccess(sessionId);
       if (success && isMountedRef.current) {
         fetchUserDcaiTokens();
+        // Refetch activity after a short delay
+        setTimeout(() => {
+          fetchActivity();
+        }, 1000);
       }
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to create strategy');
@@ -487,6 +680,10 @@ export default function DCABoard() {
       const success = await waitForTransactionSuccess(sessionId);
       if (success && isMountedRef.current) {
         fetchUserDcaiTokens();
+        // Refetch activity after a short delay
+        setTimeout(() => {
+          fetchActivity();
+        }, 1000);
       }
     } catch (error) {
       // Error handling is done by the transaction system
@@ -498,18 +695,97 @@ export default function DCABoard() {
     setModifyModal({ isOpen: false, strategyId: null, amountPerDca: '', frequency: '', takeProfitPct: '', showTakeProfit: false });
   };
 
-  const handleDeleteStrategy = async (strategyId: string) => {
-    const strategy = strategies.find(s => s.id === strategyId);
-    if (!strategy) return;
+  const handleDeleteStrategy = (strategyId: string) => {
+    setDeleteModal({
+      isOpen: true,
+      strategyId
+    });
+  };
 
-    if (confirm('Are you sure you want to delete this strategy?')) {
-      try {
-        await deleteStrategy(strategy.contractAddress, strategy.tokenIdentifier);
-        // Strategy will be removed after successful transaction
-        // The UI will update when strategies are refreshed
-      } catch (error) {
-        // Error handling is done by the transaction system
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal.strategyId) return;
+
+    const strategy = strategies.find(s => s.id === deleteModal.strategyId);
+    if (!strategy) {
+      setDeleteModal({ isOpen: false, strategyId: null });
+      return;
+    }
+
+    try {
+      const { sessionId } = await deleteStrategy(strategy.contractAddress, strategy.tokenIdentifier);
+      setDeleteModal({ isOpen: false, strategyId: null });
+      
+      // Wait for transaction success and then refetch
+      const success = await waitForTransactionSuccess(sessionId);
+      if (success && isMountedRef.current) {
+        fetchUserDcaiTokens();
+        // Refetch activity after a short delay
+        setTimeout(() => {
+          fetchActivity();
+        }, 1000);
       }
+    } catch (error) {
+      // Error handling is done by the transaction system
+      setDeleteModal({ isOpen: false, strategyId: null });
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModal({ isOpen: false, strategyId: null });
+  };
+
+  // Fetch user's USDC wallet balance
+  const fetchUsdcWalletBalance = async () => {
+    if (!address) {
+      setUsdcWalletBalance(0);
+      return;
+    }
+
+    try {
+      // Determine API URL based on network
+      let apiUrl = 'https://devnet-api.multiversx.com';
+      if (network.apiAddress) {
+        if (network.apiAddress.includes('devnet')) {
+          apiUrl = 'https://devnet-api.multiversx.com';
+        } else if (network.apiAddress.includes('testnet')) {
+          apiUrl = 'https://testnet-api.multiversx.com';
+        } else {
+          apiUrl = 'https://api.multiversx.com';
+        }
+      }
+
+      // Fetch user's tokens
+      const tokensUrl = `${apiUrl}/accounts/${address}/tokens`;
+      const response = await fetch(tokensUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        setUsdcWalletBalance(0);
+        return;
+      }
+
+      const tokensData = await response.json();
+      
+      // Find USDC token (USDC-350c4e for devnet, might be different for other networks)
+      const usdcToken = tokensData.find((token: any) => {
+        const identifier = token.identifier || token.tokenIdentifier || '';
+        return identifier.startsWith('USDC-');
+      });
+
+      if (usdcToken) {
+        // USDC has 6 decimals
+        const usdcDecimals = 1000000; // 10^6
+        const balance = parseFloat(usdcToken.balance || '0') / usdcDecimals;
+        setUsdcWalletBalance(balance);
+      } else {
+        setUsdcWalletBalance(0);
+      }
+    } catch (error) {
+      setUsdcWalletBalance(0);
     }
   };
 
@@ -519,6 +795,8 @@ export default function DCABoard() {
       strategyId,
       amount: ''
     });
+    // Fetch USDC balance when modal opens
+    fetchUsdcWalletBalance();
   };
 
   // Helper function to wait for transaction success and then refetch
@@ -585,6 +863,10 @@ export default function DCABoard() {
       const success = await waitForTransactionSuccess(sessionId);
       if (success && isMountedRef.current) {
         fetchUserDcaiTokens();
+        // Refetch activity after a short delay
+        setTimeout(() => {
+          fetchActivity();
+        }, 1000);
       }
     } catch (error) {
       // Error handling is done by the transaction system
@@ -627,6 +909,10 @@ export default function DCABoard() {
       const success = await waitForTransactionSuccess(sessionId);
       if (success && isMountedRef.current) {
         fetchUserDcaiTokens();
+        // Refetch activity after a short delay
+        setTimeout(() => {
+          fetchActivity();
+        }, 1000);
       }
     } catch (error) {
       // Error handling is done by the transaction system
@@ -813,9 +1099,36 @@ export default function DCABoard() {
 
             <div className='grid gap-4 md:grid-cols-2'>
               <div className='flex flex-col gap-1'>
-                <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
-                  Frequency
-                </label>
+                <div className='flex items-center gap-1'>
+                  <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
+                    Frequency
+                  </label>
+                  <button
+                    type='button'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowFrequencyInfo(!showFrequencyInfo);
+                    }}
+                    className='relative flex items-center justify-center h-4 w-4 text-[hsl(var(--gray-300)/0.6)] hover:text-[hsl(var(--sky-300))] transition-colors'
+                    title='DCAi LLM Information'
+                  >
+                    <span className='text-xs'>ℹ</span>
+                    {showFrequencyInfo && (
+                      <>
+                        <div
+                          className='fixed inset-0 z-40'
+                          onClick={() => setShowFrequencyInfo(false)}
+                        />
+                        <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 text-xs bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.2)] shadow-lg z-50 rounded'>
+                          <p className='text-[hsl(var(--gray-300)/0.9)]'>
+                            DCAi LLM works only with <strong>Daily</strong> or <strong>Weekly</strong> frequency. These frequencies are marked with &quot;(DCAi Activated)&quot; in the dropdown.
+                          </p>
+                          <div className='absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-[hsl(var(--background))] border-r border-b border-[hsl(var(--gray-300)/0.2)] rotate-45'></div>
+                        </div>
+                      </>
+                    )}
+                  </button>
+                </div>
                 {loadingSetup ? (
                   <div className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm flex items-center text-[hsl(var(--gray-300)/0.6)]'>
                     Loading frequencies...
@@ -823,32 +1136,67 @@ export default function DCABoard() {
                 ) : (() => {
                   // Find the setup for the selected token
                   const selectedSetup = setups?.find(s => s.dcaToken === token) || setup;
-                  return selectedSetup && selectedSetup.allowedFrequencies && selectedSetup.allowedFrequencies.length > 0 ? (
-                    <select
-                      value={frequency}
-                      onChange={(e) => setFrequency(e.target.value)}
-                      className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
-                    >
-                      {selectedSetup.allowedFrequencies.map((freq, index) => {
-                        // Show only the frequency name, without duration
-                        return (
-                          <option key={index} value={freq.frequency}>
-                            {freq.frequency}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  ) : (
-                    <select
-                      value={frequency}
-                      onChange={(e) => setFrequency(e.target.value)}
-                      className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
-                    >
-                      <option value='hourly'>Every hour</option>
-                      <option value='daily'>Daily</option>
-                      <option value='weekly'>Weekly</option>
-                      <option value='monthly'>Monthly</option>
-                    </select>
+                  const frequencies = selectedSetup && selectedSetup.allowedFrequencies && selectedSetup.allowedFrequencies.length > 0
+                    ? selectedSetup.allowedFrequencies.map(freq => freq.frequency)
+                    : ['hourly', 'daily', 'weekly', 'monthly'];
+                  
+                  // Get display name for frequency
+                  const getFrequencyDisplayName = (freq: string) => {
+                    const freqName = freq.toLowerCase();
+                    if (freqName === 'daily' || freqName === 'weekly') {
+                      return `${freq} (DCAi Activated)`;
+                    }
+                    // Capitalize first letter
+                    return freq.charAt(0).toUpperCase() + freq.slice(1);
+                  };
+                  
+                  // Get current frequency display name
+                  const currentFrequencyDisplay = frequency ? getFrequencyDisplayName(frequency) : 'Select frequency';
+                  
+                  return (
+                    <div className='relative'>
+                      <button
+                        type='button'
+                        onClick={() => setIsFrequencyDropdownOpen(!isFrequencyDropdownOpen)}
+                        className='flex h-9 w-full items-center gap-2 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-left text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
+                      >
+                        <span className='flex-1'>{currentFrequencyDisplay}</span>
+                        <span className='text-[hsl(var(--gray-300)/0.6)]'>▼</span>
+                      </button>
+                      
+                      {isFrequencyDropdownOpen && (
+                        <>
+                          <div
+                            className='fixed inset-0 z-10'
+                            onClick={() => setIsFrequencyDropdownOpen(false)}
+                          />
+                          <div className='absolute z-20 mt-1 max-h-60 w-full overflow-auto border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] shadow-lg'>
+                            {frequencies.map((freq) => {
+                              const isSelected = frequency === freq;
+                              const displayName = getFrequencyDisplayName(freq);
+                              return (
+                                <button
+                                  key={freq}
+                                  type='button'
+                                  onClick={() => {
+                                    setFrequency(freq);
+                                    setIsFrequencyDropdownOpen(false);
+                                  }}
+                                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[hsl(var(--gray-300)/0.1)] ${
+                                    isSelected ? 'bg-[hsl(var(--sky-300)/0.2)]' : ''
+                                  }`}
+                                >
+                                  <span className='flex-1'>
+                                    {isSelected && <span className='text-[hsl(var(--sky-300))]'>✓ </span>}
+                                    {displayName}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   );
                 })()}
               </div>
@@ -1153,14 +1501,16 @@ export default function DCABoard() {
                                 <button
                                   type='button'
                                   onClick={() => handleWithdraw(currentStrategy.id, 'usdc')}
-                                  className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
+                                  disabled={currentStrategy.availableUsdc === 0}
+                                  className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
                                 >
                                   Withdraw USDC
                                 </button>
                                 <button
                                   type='button'
                                   onClick={() => handleWithdraw(currentStrategy.id, 'token')}
-                                  className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
+                                  disabled={currentStrategy.tokenBalance === 0}
+                                  className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
                                 >
                                   Withdraw {currentStrategy.token}
                                 </button>
@@ -1192,65 +1542,100 @@ export default function DCABoard() {
             Latest DCAi Activity
           </h2>
           <div className='flex flex-col gap-3'>
-            <div className='flex items-center gap-3 border-b border-[hsl(var(--gray-300)/0.1)] pb-3 text-sm'>
-              <div className='flex h-8 w-8 items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.9)]'>
-                <span className='text-xs'>DCA</span>
-              </div>
-              <div className='flex-1'>
-                <p className='font-medium'>DCA executed for EGLD</p>
-                <p className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                  Bought 0.25 EGLD for $50.00 USDC • 2 hours ago
-                </p>
-              </div>
-            </div>
-            
-            <div className='flex items-center gap-3 border-b border-[hsl(var(--gray-300)/0.1)] pb-3 text-sm'>
-              <div className='flex h-8 w-8 items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.9)]'>
-                <span className='text-xs'>+</span>
-              </div>
-              <div className='flex-1'>
-                <p className='font-medium'>Deposit received</p>
-                <p className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                  $200.00 USDC deposited to EGLD strategy • 5 hours ago
-                </p>
-              </div>
-            </div>
+            {activities.length === 0 ? (
+              <p className='text-sm text-[hsl(var(--gray-300)/0.7)]'>
+                No activity yet. Your DCAi transactions will appear here.
+              </p>
+            ) : (
+              <>
+                {/* Calculate pagination */}
+                {(() => {
+                  const totalPages = Math.ceil(activities.length / itemsPerPage);
+                  const startIndex = (currentActivityPage - 1) * itemsPerPage;
+                  const endIndex = startIndex + itemsPerPage;
+                  const currentActivities = activities.slice(startIndex, endIndex);
 
-            <div className='flex items-center gap-3 border-b border-[hsl(var(--gray-300)/0.1)] pb-3 text-sm'>
-              <div className='flex h-8 w-8 items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.9)]'>
-                <span className='text-xs'>✓</span>
-              </div>
-              <div className='flex-1'>
-                <p className='font-medium'>Take-profit executed</p>
-                <p className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                  Sold 0.15 EGLD at +18.5% profit • 1 day ago
-                </p>
-              </div>
-            </div>
+                  // Format timestamp to human-readable
+                  const formatTimeAgo = (timestamp: number) => {
+                    const now = Date.now();
+                    const diffMs = now - timestamp;
+                    const diffMins = Math.floor(diffMs / 60000);
+                    const diffHours = Math.floor(diffMs / 3600000);
+                    const diffDays = Math.floor(diffMs / 86400000);
+                    
+                    if (diffMins < 1) {
+                      return 'Just now';
+                    } else if (diffMins < 60) {
+                      return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
+                    } else if (diffHours < 24) {
+                      return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+                    } else if (diffDays < 7) {
+                      return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
+                    } else {
+                      const date = new Date(timestamp);
+                      return date.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+                      });
+                    }
+                  };
 
-            <div className='flex items-center gap-3 border-b border-[hsl(var(--gray-300)/0.1)] pb-3 text-sm'>
-              <div className='flex h-8 w-8 items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.9)]'>
-                <span className='text-xs'>DCA</span>
-              </div>
-              <div className='flex-1'>
-                <p className='font-medium'>DCA executed for WEGLD</p>
-                <p className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                  Bought 12.5 WEGLD for $50.00 USDC • 1 day ago
-                </p>
-              </div>
-            </div>
+                  return (
+                    <>
+                      {/* Activity items */}
+                      <div className='flex flex-col gap-3'>
+                        {currentActivities.map((activity, index) => {
+                          const isLast = index === currentActivities.length - 1;
 
-            <div className='flex items-center gap-3 text-sm'>
-              <div className='flex h-8 w-8 items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.9)]'>
-                <span className='text-xs'>⚙</span>
-              </div>
-              <div className='flex-1'>
-                <p className='font-medium'>Strategy created</p>
-                <p className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                  EGLD DCA strategy activated • 2 days ago
-                </p>
-              </div>
-            </div>
+                          return (
+                            <div
+                              key={`${activity.type}-${activity.timestamp}-${startIndex + index}`}
+                              className={`flex items-center gap-3 ${!isLast ? 'border-b border-[hsl(var(--gray-300)/0.1)] pb-3' : ''} text-sm`}
+                            >
+                              <div className='flex h-8 w-8 items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.9)]'>
+                                <span className='text-xs'>{activity.icon}</span>
+                              </div>
+                              <div className='flex-1'>
+                                <p className='font-medium'>{activity.title}</p>
+                                <p className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
+                                  {activity.description} • {formatTimeAgo(activity.timestamp)}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Pagination controls */}
+                      {totalPages > 1 && (
+                        <div className='flex items-center justify-between pt-3 border-t border-[hsl(var(--gray-300)/0.1)]'>
+                          <button
+                            type='button'
+                            onClick={() => setCurrentActivityPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentActivityPage === 1}
+                            className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
+                          >
+                            Previous
+                          </button>
+                          <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
+                            Page {currentActivityPage} of {totalPages}
+                          </span>
+                          <button
+                            type='button'
+                            onClick={() => setCurrentActivityPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentActivityPage === totalPages}
+                            className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </>
+            )}
           </div>
         </section>
       </div>
@@ -1364,6 +1749,13 @@ export default function DCABoard() {
                 Enter USDC amount to deposit for {strategy.token} DCA strategy
               </p>
 
+              <div className='flex flex-col gap-2 mb-4'>
+                <div className='flex items-center justify-between text-xs text-[hsl(var(--gray-300)/0.7)]'>
+                  <span>Wallet balance:</span>
+                  <span className='font-medium'>{usdcWalletBalance.toFixed(2)} USDC</span>
+                </div>
+              </div>
+
               <div className='flex flex-col gap-2 mb-6'>
                 <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
                   Amount (USDC)
@@ -1458,30 +1850,100 @@ export default function DCABoard() {
               <div className='flex flex-col gap-4'>
                 {/* Frequency */}
                 <div className='flex flex-col gap-1'>
-                  <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
-                    Frequency
-                  </label>
-                  {strategySetup && strategySetup.allowedFrequencies && strategySetup.allowedFrequencies.length > 0 ? (
-                    <select
-                      value={modifyModal.frequency}
-                      onChange={(e) => setModifyModal({ ...modifyModal, frequency: e.target.value })}
-                      className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
+                  <div className='flex items-center gap-1'>
+                    <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
+                      Frequency
+                    </label>
+                    <button
+                      type='button'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowFrequencyInfo(!showFrequencyInfo);
+                      }}
+                      className='relative flex items-center justify-center h-4 w-4 text-[hsl(var(--gray-300)/0.6)] hover:text-[hsl(var(--sky-300))] transition-colors'
+                      title='DCAi LLM Information'
                     >
-                      {strategySetup.allowedFrequencies.map((freq, index) => (
-                        <option key={index} value={freq.frequency}>
-                          {freq.frequency}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type='text'
-                      value={modifyModal.frequency}
-                      onChange={(e) => setModifyModal({ ...modifyModal, frequency: e.target.value })}
-                      className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
-                      placeholder='Frequency'
-                    />
-                  )}
+                      <span className='text-xs'>ℹ</span>
+                      {showFrequencyInfo && (
+                        <>
+                          <div
+                            className='fixed inset-0 z-40'
+                            onClick={() => setShowFrequencyInfo(false)}
+                          />
+                          <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 text-xs bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.2)] shadow-lg z-50 rounded'>
+                            <p className='text-[hsl(var(--gray-300)/0.9)]'>
+                              DCAi LLM works only with <strong>Daily</strong> or <strong>Weekly</strong> frequency. These frequencies are marked with &quot;(DCAi Activated)&quot; in the dropdown.
+                            </p>
+                            <div className='absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-[hsl(var(--background))] border-r border-b border-[hsl(var(--gray-300)/0.2)] rotate-45'></div>
+                          </div>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  {(() => {
+                    const frequencies = strategySetup && strategySetup.allowedFrequencies && strategySetup.allowedFrequencies.length > 0
+                      ? strategySetup.allowedFrequencies.map(freq => freq.frequency)
+                      : ['hourly', 'daily', 'weekly', 'monthly'];
+                    
+                    // Get display name for frequency
+                    const getFrequencyDisplayName = (freq: string) => {
+                      const freqName = freq.toLowerCase();
+                      if (freqName === 'daily' || freqName === 'weekly') {
+                        return `${freq} (DCAi Activated)`;
+                      }
+                      // Capitalize first letter
+                      return freq.charAt(0).toUpperCase() + freq.slice(1);
+                    };
+                    
+                    // Get current frequency display name
+                    const currentFrequencyDisplay = modifyModal.frequency ? getFrequencyDisplayName(modifyModal.frequency) : 'Select frequency';
+                    
+                    return (
+                      <div className='relative'>
+                        <button
+                          type='button'
+                          onClick={() => setIsModifyFrequencyDropdownOpen(!isModifyFrequencyDropdownOpen)}
+                          className='flex h-9 w-full items-center gap-2 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-left text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
+                        >
+                          <span className='flex-1'>{currentFrequencyDisplay}</span>
+                          <span className='text-[hsl(var(--gray-300)/0.6)]'>▼</span>
+                        </button>
+                        
+                        {isModifyFrequencyDropdownOpen && (
+                          <>
+                            <div
+                              className='fixed inset-0 z-40'
+                              onClick={() => setIsModifyFrequencyDropdownOpen(false)}
+                            />
+                            <div className='absolute z-50 mt-1 max-h-60 w-full overflow-auto border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] shadow-lg'>
+                              {frequencies.map((freq) => {
+                                const isSelected = modifyModal.frequency === freq;
+                                const displayName = getFrequencyDisplayName(freq);
+                                return (
+                                  <button
+                                    key={freq}
+                                    type='button'
+                                    onClick={() => {
+                                      setModifyModal({ ...modifyModal, frequency: freq });
+                                      setIsModifyFrequencyDropdownOpen(false);
+                                    }}
+                                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[hsl(var(--gray-300)/0.1)] ${
+                                      isSelected ? 'bg-[hsl(var(--sky-300)/0.2)]' : ''
+                                    }`}
+                                  >
+                                    <span className='flex-1'>
+                                      {isSelected && <span className='text-[hsl(var(--sky-300))]'>✓ </span>}
+                                      {displayName}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Amount per DCA */}
@@ -1565,6 +2027,48 @@ export default function DCABoard() {
                   className='inline-flex items-center justify-center bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   Modify Strategy
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && deleteModal.strategyId && (() => {
+        const strategy = strategies.find(s => s.id === deleteModal.strategyId);
+        if (!strategy) return null;
+
+        return (
+          <div
+            className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'
+            onClick={handleDeleteCancel}
+          >
+            <div
+              className='border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] p-6 shadow-lg w-full max-w-md mx-4'
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className='text-sm font-semibold tracking-tight mb-1'>
+                Delete Strategy
+              </h2>
+              <p className='text-xs text-[hsl(var(--gray-300)/0.7)] mb-4'>
+                Are you sure you want to delete your {strategy.token} DCA strategy? This action cannot be undone.
+              </p>
+
+              <div className='flex gap-3 justify-end'>
+                <button
+                  type='button'
+                  onClick={handleDeleteCancel}
+                  className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
+                >
+                  Cancel
+                </button>
+                <button
+                  type='button'
+                  onClick={handleDeleteConfirm}
+                  className='inline-flex items-center justify-center bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700'
+                >
+                  Delete Strategy
                 </button>
               </div>
             </div>

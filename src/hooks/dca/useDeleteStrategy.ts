@@ -62,12 +62,12 @@ export const useDeleteStrategy = () => {
         version: 1
       });
 
-      const sessionId = await signAndSendTransactions({
+      const { sessionId } = await signAndSendTransactions({
         transactions: [deleteStrategyTransaction],
         transactionsDisplayInfo: DELETE_STRATEGY_TRANSACTION_INFO
       });
 
-      return sessionId;
+      return { sessionId };
     } catch (error) {
       console.error('Error in deleteStrategy function:', error);
       throw error;
