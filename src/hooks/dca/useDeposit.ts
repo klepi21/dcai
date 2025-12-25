@@ -73,7 +73,7 @@ export const useDeposit = () => {
         value: BigInt(0),
         gasLimit: BigInt(20000000), // 20 million gas for multi-token transfer
         chainID: network.chainId,
-        data: Buffer.from(multiTransferData),
+        data: new Uint8Array(Buffer.from(multiTransferData)),
         version: 1
       });
 

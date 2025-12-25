@@ -58,7 +58,7 @@ export const useDeleteStrategy = () => {
         value: BigInt(0),
         gasLimit: BigInt(20000000), // 20 million gas
         chainID: network.chainId,
-        data: Buffer.from(multiTransferData),
+        data: new Uint8Array(Buffer.from(multiTransferData)),
         version: 1
       });
 
