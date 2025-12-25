@@ -155,6 +155,18 @@
             "outputs": []
         },
         {
+            "name": "swap",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "nonces",
+                    "type": "variadic<u64>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
             "name": "isBot",
             "mutability": "readonly",
             "inputs": [
@@ -385,6 +397,9 @@
             ],
             "outputs": [
                 {
+                    "type": "u64"
+                },
+                {
                     "type": "BigUint"
                 },
                 {
@@ -408,17 +423,23 @@
             ]
         },
         {
-            "name": "getAccountStrategies",
+            "name": "getAllStrategies",
             "mutability": "readonly",
-            "inputs": [
-                {
-                    "name": "address",
-                    "type": "Address"
-                }
-            ],
+            "inputs": [],
             "outputs": [
                 {
-                    "type": "variadic<multi<BigUint,bytes,u64,u64,BigUint,BigUint,u64>>",
+                    "type": "variadic<multi<u64,BigUint,bytes,u64,u64,BigUint,BigUint,u64>>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getAllStrategiesOnlyNonces",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "variadic<u64>",
                     "multi_result": true
                 }
             ]
@@ -460,6 +481,25 @@
                     "name": "bot",
                     "type": "Address",
                     "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "swapExecuted",
+            "inputs": [
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "amount_swapped",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "amount_received",
+                    "type": "BigUint"
                 }
             ]
         },

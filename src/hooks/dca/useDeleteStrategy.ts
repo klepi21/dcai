@@ -56,7 +56,7 @@ export const useDeleteStrategy = () => {
         sender: new Address(address),
         receiver: new Address(address), // For MultiESDTNFTTransfer, receiver is the sender (actual receiver is in data field)
         value: BigInt(0),
-        gasLimit: BigInt(20000000), // 20 million gas
+        gasLimit: BigInt(8000000), // 8 million gas
         chainID: network.chainId,
         data: new Uint8Array(Buffer.from(multiTransferData)),
         version: 1

@@ -71,7 +71,7 @@ export const useCreateStrategy = () => {
     const createStrategyTransaction = await scFactory.createTransactionForExecute(
       new Address(address),
       {
-        gasLimit: BigInt(100000000),
+        gasLimit: BigInt(8000000), // 8 million gas
         function: 'createStrategy',
         contract: new Address(contractAddress),
         arguments: args

@@ -340,38 +340,44 @@ export const useDcaContract = () => {
       
       const returnData = data.data?.data?.returnData;
       
-      if (!returnData || returnData.length < 7) {
-        throw new Error('Invalid response: insufficient data returned');
+      if (!returnData || returnData.length < 8) {
+        throw new Error('Invalid response: insufficient data returned (expected 8 values)');
       }
 
       // Parse the response
-      // Returns: [BigUint, bytes, u64, u64, BigUint, BigUint, u64]
-      // 0: amount_per_swap (BigUint)
-      // 1: dca_frequency (bytes)
-      // 2: frequency_in_millis (u64)
-      // 3: take_profit_percentage (u64)
-      // 4: usdc_balance (BigUint)
-      // 5: token_balance (BigUint)
-      // 6: last_executed_ts_millis (u64)
+      // Returns: [u64, BigUint, bytes, u64, u64, BigUint, BigUint, u64]
+      // 0: u64 (nonce - can be ignored, we already have it)
+      // 1: amount_per_swap (BigUint)
+      // 2: dca_frequency (bytes)
+      // 3: frequency_in_millis (u64)
+      // 4: take_profit_percentage (u64)
+      // 5: usdc_balance (BigUint)
+      // 6: token_balance (BigUint)
+      // 7: last_executed_ts_millis (u64)
 
-      const amountPerSwapHex = returnData[0] ? base64ToHex(returnData[0]) : '0';
+      if (!returnData || returnData.length < 8) {
+        throw new Error('Invalid response: insufficient data returned (expected 8 values)');
+      }
+
+      // Skip index 0 (nonce u64) and start from index 1
+      const amountPerSwapHex = returnData[1] ? base64ToHex(returnData[1]) : '0';
       const amountPerSwap = hexToDecimal(amountPerSwapHex);
 
-      const dcaFrequency = returnData[1] ? base64ToString(returnData[1]) : '';
+      const dcaFrequency = returnData[2] ? base64ToString(returnData[2]) : '';
 
-      const frequencyInMillisHex = returnData[2] ? base64ToHex(returnData[2]) : '0';
+      const frequencyInMillisHex = returnData[3] ? base64ToHex(returnData[3]) : '0';
       const frequencyInMillis = hexToDecimal(frequencyInMillisHex);
 
-      const takeProfitPercentageHex = returnData[3] ? base64ToHex(returnData[3]) : '0';
+      const takeProfitPercentageHex = returnData[4] ? base64ToHex(returnData[4]) : '0';
       const takeProfitPercentage = hexToDecimal(takeProfitPercentageHex);
 
-      const usdcBalanceHex = returnData[4] ? base64ToHex(returnData[4]) : '0';
+      const usdcBalanceHex = returnData[5] ? base64ToHex(returnData[5]) : '0';
       const usdcBalance = hexToDecimal(usdcBalanceHex);
 
-      const tokenBalanceHex = returnData[5] ? base64ToHex(returnData[5]) : '0';
+      const tokenBalanceHex = returnData[6] ? base64ToHex(returnData[6]) : '0';
       const tokenBalance = hexToDecimal(tokenBalanceHex);
 
-      const lastExecutedTsMillisHex = returnData[6] ? base64ToHex(returnData[6]) : '0';
+      const lastExecutedTsMillisHex = returnData[7] ? base64ToHex(returnData[7]) : '0';
       const lastExecutedTsMillis = hexToDecimal(lastExecutedTsMillisHex);
 
       // Convert balances to readable format (USDC has 6 decimals)
