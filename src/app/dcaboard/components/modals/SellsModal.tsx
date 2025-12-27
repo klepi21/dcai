@@ -21,7 +21,7 @@ export function SellsModal({ isOpen, sells, token, onClose }: SellsModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className='flex items-center justify-between p-4 border-b border-[hsl(var(--gray-300)/0.2)]'>
-          <h3 className='text-lg font-semibold'>Sell History ({sells.length})</h3>
+          <h3 className='text-lg font-semibold'>Take Profit History ({sells.length})</h3>
           <button
             type='button'
             onClick={onClose}
@@ -33,7 +33,7 @@ export function SellsModal({ isOpen, sells, token, onClose }: SellsModalProps) {
         <div className='overflow-y-auto flex-1 p-4'>
           {sells.length === 0 ? (
             <p className='text-sm text-[hsl(var(--gray-300)/0.7)] text-center py-8'>
-              No sell transactions yet
+              No take profit transactions yet
             </p>
           ) : (
             <div className='flex flex-col gap-3'>
@@ -74,7 +74,7 @@ export function SellsModal({ isOpen, sells, token, onClose }: SellsModalProps) {
                       </span>
                     </div>
                     <div className='text-xs text-[hsl(var(--red-300)/0.8)] font-medium'>
-                      Sell
+                      Take Profit
                     </div>
                   </div>
                 );

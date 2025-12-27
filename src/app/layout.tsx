@@ -23,8 +23,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang='en' className={inter.className}>
-      <body>
+    <html lang='en' className={inter.className} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <InitAppWrapper>
           <App>
             <Suspense>

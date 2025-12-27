@@ -12,10 +12,6 @@ interface FrequencyDropdownProps {
 }
 
 function getFrequencyDisplayName(freq: string): string {
-  const freqName = freq.toLowerCase();
-  if (freqName === 'daily' || freqName === 'weekly') {
-    return `${freq} (DCAi Activated)`;
-  }
   return freq.charAt(0).toUpperCase() + freq.slice(1);
 }
 

@@ -6,10 +6,12 @@ interface BuysModalProps {
   isOpen: boolean;
   buys: Swap[];
   token: string;
+  dcaTokenIdentifier?: string;
+  tokenPrices: Record<string, number>;
   onClose: () => void;
 }
 
-export function BuysModal({ isOpen, buys, token, onClose }: BuysModalProps) {
+export function BuysModal({ isOpen, buys, token, dcaTokenIdentifier, tokenPrices, onClose }: BuysModalProps) {
   if (!isOpen) return null;
 
   // Calculate average buy price (average of individual buy prices)
@@ -42,14 +44,21 @@ export function BuysModal({ isOpen, buys, token, onClose }: BuysModalProps) {
       >
         <div className='p-4 border-b border-[hsl(var(--gray-300)/0.2)]'>
           <div className='flex items-center justify-between mb-2'>
-            <h3 className='text-lg font-semibold'>Buy History ({buys.length})</h3>
-            <button
-              type='button'
-              onClick={onClose}
-              className='text-[hsl(var(--gray-300)/0.7)] hover:text-foreground transition-colors'
-            >
-              ×
-            </button>
+            <h3 className='text-lg font-semibold'>DCA History ({buys.length})</h3>
+            <div className='flex items-center gap-3'>
+              {dcaTokenIdentifier && tokenPrices[dcaTokenIdentifier] && (
+                <div className='text-sm text-[hsl(var(--gray-300)/0.8)]'>
+                  1 {token} = <span className='font-medium text-foreground'>${tokenPrices[dcaTokenIdentifier].toFixed(4)} USD</span>
+                </div>
+              )}
+              <button
+                type='button'
+                onClick={onClose}
+                className='text-[hsl(var(--gray-300)/0.7)] hover:text-foreground transition-colors'
+              >
+                ×
+              </button>
+            </div>
           </div>
           {averageBuyPrice !== null && (
             <div className='text-sm text-[hsl(var(--gray-300)/0.8)]'>
@@ -60,7 +69,7 @@ export function BuysModal({ isOpen, buys, token, onClose }: BuysModalProps) {
         <div className='overflow-y-auto flex-1 p-4'>
           {buys.length === 0 ? (
             <p className='text-sm text-[hsl(var(--gray-300)/0.7)] text-center py-8'>
-              No buy transactions yet
+              No DCA transactions yet
             </p>
           ) : (
             <div className='flex flex-col gap-3'>
@@ -101,7 +110,7 @@ export function BuysModal({ isOpen, buys, token, onClose }: BuysModalProps) {
                       </span>
                     </div>
                     <div className='text-xs text-[hsl(var(--sky-300)/0.8)] font-medium'>
-                      Buy
+                      DCA
                     </div>
                   </div>
                 );

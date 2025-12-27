@@ -6,6 +6,17 @@ import { formatLastDca } from '../utils/formatTime';
 import { BuysModal } from './modals/BuysModal';
 import { SellsModal } from './modals/SellsModal';
 
+// Component to display token price
+function TokenPriceDisplay({ tokenIdentifier, tokenPrices }: { tokenIdentifier: string; tokenPrices: Record<string, number> }) {
+  const price = tokenPrices[tokenIdentifier];
+  
+  if (price !== undefined && price !== null && !isNaN(price)) {
+    return <span className='text-xs text-[hsl(var(--gray-300)/0.7)] ml-1'>(${price.toFixed(4)})</span>;
+  }
+  
+  return null;
+}
+
 interface ActiveStrategiesListProps {
   strategies: DcaStrategy[];
   expandedGroups: Set<string>;
@@ -16,6 +27,7 @@ interface ActiveStrategiesListProps {
   onDeleteStrategy: (strategyId: string) => void;
   onDeposit: (strategyId: string) => void;
   onWithdraw: (strategyId: string, asset: 'usdc' | 'token') => void;
+  tokenPrices: Record<string, number>;
 }
 
 export function ActiveStrategiesList({
@@ -27,7 +39,8 @@ export function ActiveStrategiesList({
   onModifyStrategy,
   onDeleteStrategy,
   onDeposit,
-  onWithdraw
+  onWithdraw,
+  tokenPrices
 }: ActiveStrategiesListProps) {
   const [showBuysModal, setShowBuysModal] = useState<{ strategyId: string; buys: typeof strategies[0]['buys'] } | null>(null);
   const [showSellsModal, setShowSellsModal] = useState<{ strategyId: string; sells: typeof strategies[0]['sells'] } | null>(null);
@@ -188,6 +201,11 @@ export function ActiveStrategiesList({
                       </span>
                       <span className='font-medium'>
                         {currentStrategy.tokenBalance.toFixed(2)} {currentStrategy.token}
+                        {currentStrategy.dcaTokenIdentifier && tokenPrices[currentStrategy.dcaTokenIdentifier] && (
+                          <span className='text-[hsl(var(--gray-300)/0.7)] ml-1'>
+                            (${(currentStrategy.tokenBalance * tokenPrices[currentStrategy.dcaTokenIdentifier]).toFixed(2)})
+                          </span>
+                        )}
                       </span>
                     </div>
                     
@@ -208,21 +226,21 @@ export function ActiveStrategiesList({
                     )}
                   </div>
 
-                  {/* Buys and Sells Buttons */}
+                  {/* DCA and Take Profit Buttons */}
                   <div className='flex items-center gap-2 border-t border-[hsl(var(--gray-300)/0.2)] pt-3'>
                     <button
                       type='button'
                       onClick={() => setShowBuysModal({ strategyId: currentStrategy.id, buys: currentStrategy.buys || [] })}
                       className='flex-1 text-xs px-3 py-1.5 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] hover:border-[hsl(var(--sky-300)/0.5)] hover:text-[hsl(var(--sky-300))] hover:bg-[hsl(var(--gray-300)/0.05)] transition-colors rounded'
                     >
-                      Buys ({currentStrategy.buys?.length || 0})
+                      DCA ({currentStrategy.buys?.length || 0})
                     </button>
                     <button
                       type='button'
                       onClick={() => setShowSellsModal({ strategyId: currentStrategy.id, sells: currentStrategy.sells || [] })}
                       className='flex-1 text-xs px-3 py-1.5 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] hover:border-[hsl(var(--red-300)/0.5)] hover:text-[hsl(var(--red-300))] hover:bg-[hsl(var(--gray-300)/0.05)] transition-colors rounded'
                     >
-                      Sells ({currentStrategy.sells?.length || 0})
+                      Take Profit ({currentStrategy.sells?.length || 0})
                     </button>
                   </div>
 
@@ -259,14 +277,19 @@ export function ActiveStrategiesList({
       })}
 
       {/* Modals */}
-      {showBuysModal && showBuysModal.buys && (
-        <BuysModal
-          isOpen={true}
-          buys={showBuysModal.buys}
-          token={strategies.find(s => s.id === showBuysModal.strategyId)?.token || ''}
-          onClose={() => setShowBuysModal(null)}
-        />
-      )}
+      {showBuysModal && showBuysModal.buys && (() => {
+        const strategy = strategies.find(s => s.id === showBuysModal.strategyId);
+        return (
+          <BuysModal
+            isOpen={true}
+            buys={showBuysModal.buys}
+            token={strategy?.token || ''}
+            dcaTokenIdentifier={strategy?.dcaTokenIdentifier}
+            tokenPrices={tokenPrices}
+            onClose={() => setShowBuysModal(null)}
+          />
+        );
+      })()}
       {showSellsModal && showSellsModal.sells && (
         <SellsModal
           isOpen={true}

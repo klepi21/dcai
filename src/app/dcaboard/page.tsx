@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useDcaContract, useCreateStrategy, useDeposit, useWithdraw, useDeleteStrategy, useModifyStrategy } from '@/hooks';
 import { useGetAccount, useGetNetworkConfig, getActiveTransactionsStatus } from '@/lib';
-import { MultiversXToken, DcaStrategy, ActivityItem } from './types';
+import { MultiversXToken, DcaStrategy, ActivityItem, TokenMarketData } from './types';
 import { PortfolioHeader } from './components/PortfolioHeader';
 import { CreateStrategyForm } from './components/CreateStrategyForm';
 import { ActiveStrategiesList } from './components/ActiveStrategiesList';
@@ -12,6 +12,7 @@ import { DepositModal } from './components/modals/DepositModal';
 import { WithdrawModal } from './components/modals/WithdrawModal';
 import { DeleteModal } from './components/modals/DeleteModal';
 import { ModifyStrategyModal } from './components/modals/ModifyStrategyModal';
+import { StrategyAnalysisModal } from './components/modals/StrategyAnalysisModal';
 import { getNetworkPath, getApiUrl } from './utils/network';
 
 export default function DCABoard() {
@@ -27,6 +28,8 @@ export default function DCABoard() {
   const [strategies, setStrategies] = useState<DcaStrategy[]>([]);
   const [tokens, setTokens] = useState<MultiversXToken[]>([]);
   const [loadingTokens, setLoadingTokens] = useState(true);
+  const [tokenPrices, setTokenPrices] = useState<Record<string, number>>({});
+  const [tokenMarketData, setTokenMarketData] = useState<Record<string, TokenMarketData>>({});
   const [token, setToken] = useState<string>('');
   const [frequency, setFrequency] = useState<string>('');
   const [amountPerDca, setAmountPerDca] = useState<string>('');
@@ -71,6 +74,20 @@ export default function DCABoard() {
   }>({
     isOpen: false,
     strategyId: null
+  });
+  // State for strategy analysis modal
+  const [analysisModal, setAnalysisModal] = useState<{
+    isOpen: boolean;
+    token: string;
+    usdcPerSwap: number;
+    frequency: string;
+    takeProfit: number;
+  }>({
+    isOpen: false,
+    token: '',
+    usdcPerSwap: 0,
+    frequency: '',
+    takeProfit: 0
   });
   // State for user's USDC wallet balance
   const [usdcWalletBalance, setUsdcWalletBalance] = useState<number>(0);
@@ -254,7 +271,8 @@ export default function DCABoard() {
             const strategy: DcaStrategy = {
               id: `${identifier}-${nonce}`, // Use identifier-nonce as unique ID
               token: tokenTicker,
-              tokenIdentifier: identifier,
+              tokenIdentifier: identifier, // Strategy token identifier (e.g., DCAIHTM-cffd95-01)
+              dcaTokenIdentifier: matchingSetup?.dcaToken || tokenFromList?.identifier || iconIdentifier, // Actual DCA token identifier (e.g., HTM-abdfrg)
               tokenLogo: `https://tools.multiversx.com/assets-cdn/${networkPathForImages}/tokens/${iconIdentifier}/icon.png`,
               frequency: attributes.dcaFrequency || 'Unknown',
               amountPerDca: amountPerSwap,
@@ -449,6 +467,70 @@ export default function DCABoard() {
     };
   }, []);
 
+  // Function to fetch prices for all tokens
+  const fetchTokenPrices = async (tokensToFetch: MultiversXToken[]) => {
+    if (tokensToFetch.length === 0) return;
+
+    try {
+      // Determine API URL based on network
+      let apiUrl = 'https://devnet-api.multiversx.com';
+      if (network.apiAddress) {
+        if (network.apiAddress.includes('devnet')) {
+          apiUrl = 'https://devnet-api.multiversx.com';
+        } else if (network.apiAddress.includes('testnet')) {
+          apiUrl = 'https://testnet-api.multiversx.com';
+        } else {
+          apiUrl = 'https://api.multiversx.com';
+        }
+      }
+
+      // Fetch tokens from MultiversX API
+      const response = await fetch(`${apiUrl}/tokens?size=300`);
+      
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+      const apiTokens = Array.isArray(data) ? data : (data.data || []);
+      
+      // Create a map of token identifier to price
+      const prices: Record<string, number> = {};
+      const marketData: Record<string, TokenMarketData> = {};
+      
+      tokensToFetch.forEach(tokenToFetch => {
+        const token = apiTokens.find((t: any) => 
+          t.identifier === tokenToFetch.identifier ||
+          t.identifier?.toLowerCase() === tokenToFetch.identifier?.toLowerCase()
+        );
+        
+        if (token) {
+          const priceValue = token.price || token.priceUsd || token.priceUSD;
+          if (priceValue !== undefined && priceValue !== null) {
+            const parsedPrice = parseFloat(priceValue);
+            if (!isNaN(parsedPrice)) {
+              prices[tokenToFetch.identifier] = parsedPrice;
+            }
+          }
+          
+          // Store market data
+          const liquidity = token.totalLiquidity ? parseFloat(token.totalLiquidity) : null;
+          const volume24h = token.totalVolume24h ? parseFloat(token.totalVolume24h) : null;
+          marketData[tokenToFetch.identifier] = {
+            price: prices[tokenToFetch.identifier] || null,
+            totalLiquidity: liquidity && !isNaN(liquidity) ? liquidity : null,
+            totalVolume24h: volume24h && !isNaN(volume24h) ? volume24h : null
+          };
+        }
+      });
+      
+      setTokenPrices(prices);
+      setTokenMarketData(marketData);
+    } catch (error) {
+      // Silently fail - prices are optional
+    }
+  };
+
   // Load tokens and setup from smart contract
   useEffect(() => {
     if (loadingSetup) {
@@ -499,6 +581,9 @@ export default function DCABoard() {
         
         setTokens(contractTokens);
         
+        // Fetch prices for all tokens
+        fetchTokenPrices(contractTokens);
+        
         // Set default token
         if (contractTokens.length > 0 && !token) {
           setToken(contractTokens[0].identifier || contractTokens[0].ticker);
@@ -543,19 +628,38 @@ export default function DCABoard() {
       return;
     }
 
-    // Address is already in bech32 format (erd1...)
-    const contractAddress = selectedSetup.address;
-
     // Take profit is optional in UI but required in ABI (use 0 if not provided)
     const parsedTakeProfit = showTakeProfit ? Number(takeProfitPct) : 0;
 
+    // Show analysis modal instead of creating strategy directly
+    setAnalysisModal({
+      isOpen: true,
+      token,
+      usdcPerSwap: parsedAmount,
+      frequency,
+      takeProfit: parsedTakeProfit
+    });
+  };
+
+  const handleCreateStrategyAfterAnalysis = async () => {
+    const parsedAmount = analysisModal.usdcPerSwap;
+    const selectedSetup = setups?.find(s => s.dcaToken === analysisModal.token);
+    if (!selectedSetup) {
+      alert('Please select a valid token');
+      return;
+    }
+
+    const contractAddress = selectedSetup.address;
+    const parsedTakeProfit = analysisModal.takeProfit;
+
     try {
       setIsCreatingStrategy(true);
+      setAnalysisModal({ isOpen: false, token: '', usdcPerSwap: 0, frequency: '', takeProfit: 0 });
       
       const { sessionId } = await createStrategy(
         contractAddress,
         parsedAmount,
-        frequency,
+        analysisModal.frequency,
         parsedTakeProfit
       );
 
@@ -575,6 +679,93 @@ export default function DCABoard() {
       }
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to create strategy');
+    } finally {
+      setIsCreatingStrategy(false);
+    }
+  };
+
+  const handleModifyStrategyAfterAnalysis = async (suggestions: string[], suggestedParams?: { usdc_per_swap?: number | null; frequency?: string | null; take_profit?: number | null }) => {
+    if (!suggestedParams) {
+      // Fallback: just show suggestions
+      const suggestionsText = suggestions.length > 0 
+        ? suggestions.join('\n• ')
+        : 'No specific suggestions provided.';
+      alert(`LLM Suggestions:\n\n• ${suggestionsText}\n\nPlease review and adjust your strategy parameters manually.`);
+      setAnalysisModal({ isOpen: false, token: '', usdcPerSwap: 0, frequency: '', takeProfit: 0 });
+      return;
+    }
+
+    // Apply suggested parameters
+    let newUsdcPerSwap = analysisModal.usdcPerSwap;
+    let newFrequency = analysisModal.frequency;
+    let newTakeProfit = analysisModal.takeProfit;
+
+    if (suggestedParams.usdc_per_swap !== null && suggestedParams.usdc_per_swap !== undefined) {
+      newUsdcPerSwap = suggestedParams.usdc_per_swap;
+      setAmountPerDca(newUsdcPerSwap.toFixed(2));
+    }
+
+    if (suggestedParams.frequency !== null && suggestedParams.frequency !== undefined) {
+      newFrequency = suggestedParams.frequency.toLowerCase();
+      setFrequency(newFrequency);
+    }
+
+    if (suggestedParams.take_profit !== null && suggestedParams.take_profit !== undefined) {
+      newTakeProfit = suggestedParams.take_profit;
+      setTakeProfitPct(newTakeProfit.toFixed(1));
+      if (newTakeProfit > 0) {
+        setShowTakeProfit(true);
+      }
+    }
+
+    // Update analysis modal with new values
+    const updatedModal = {
+      isOpen: true,
+      token: analysisModal.token,
+      usdcPerSwap: newUsdcPerSwap,
+      frequency: newFrequency,
+      takeProfit: newTakeProfit
+    };
+    setAnalysisModal(updatedModal);
+
+    // Find the setup that matches the selected token
+    const selectedSetup = setups?.find(s => s.dcaToken === analysisModal.token);
+    if (!selectedSetup) {
+      alert('Please select a valid token');
+      setAnalysisModal({ isOpen: false, token: '', usdcPerSwap: 0, frequency: '', takeProfit: 0 });
+      return;
+    }
+
+    const contractAddress = selectedSetup.address;
+
+    // Close the analysis modal and create strategy with new parameters
+    try {
+      setIsCreatingStrategy(true);
+      setAnalysisModal({ isOpen: false, token: '', usdcPerSwap: 0, frequency: '', takeProfit: 0 });
+      
+      const { sessionId } = await createStrategy(
+        contractAddress,
+        newUsdcPerSwap,
+        newFrequency,
+        newTakeProfit
+      );
+
+      // Reset form
+      setAmountPerDca('1.00');
+      setShowTakeProfit(false);
+      setTakeProfitPct('15');
+      
+      // Wait for transaction success and then refetch
+      const success = await waitForTransactionSuccess(sessionId);
+      if (success && isMountedRef.current) {
+        fetchUserDcaiTokens();
+        // Refetch activity after a short delay
+        setTimeout(() => {
+          fetchActivity();
+        }, 1000);
+      }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to create strategy with suggested parameters');
     } finally {
       setIsCreatingStrategy(false);
     }
@@ -862,7 +1053,18 @@ export default function DCABoard() {
   };
 
 
-  const totalPortfolio = strategies.reduce((sum, s) => sum + s.availableUsdc, 0);
+  // Calculate total portfolio: USDC + USD value of all token balances
+  const totalPortfolio = strategies.reduce((sum, s) => {
+    const usdcValue = s.availableUsdc;
+    let tokenValue = 0;
+    
+    // Calculate USD value of token balance if price is available
+    if (s.dcaTokenIdentifier && tokenPrices[s.dcaTokenIdentifier]) {
+      tokenValue = s.tokenBalance * tokenPrices[s.dcaTokenIdentifier];
+    }
+    
+    return sum + usdcValue + tokenValue;
+  }, 0);
 
   return (
     <div className='flex w-full justify-center overflow-visible'>
@@ -929,6 +1131,7 @@ export default function DCABoard() {
               onDeleteStrategy={handleDeleteStrategy}
               onDeposit={handleDeposit}
               onWithdraw={handleWithdraw}
+              tokenPrices={tokenPrices}
             />
           </div>
         </section>
@@ -982,6 +1185,18 @@ export default function DCABoard() {
         strategy={strategies.find(s => s.id === deleteModal.strategyId) || null}
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
+      />
+
+      <StrategyAnalysisModal
+        isOpen={analysisModal.isOpen}
+        token={analysisModal.token}
+        usdcPerSwap={analysisModal.usdcPerSwap}
+        frequency={analysisModal.frequency}
+        takeProfit={analysisModal.takeProfit}
+        marketData={analysisModal.token ? (tokenMarketData[analysisModal.token] || null) : null}
+        onClose={() => setAnalysisModal({ isOpen: false, token: '', usdcPerSwap: 0, frequency: '', takeProfit: 0 })}
+        onCreateStrategy={handleCreateStrategyAfterAnalysis}
+        onModifyStrategy={handleModifyStrategyAfterAnalysis}
       />
     </div>
   );

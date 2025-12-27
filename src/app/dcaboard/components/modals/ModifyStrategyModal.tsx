@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { DcaStrategy } from '../../types';
 import { DcaSetup } from '@/hooks/dca/useDcaContract';
 import { FrequencyDropdown } from '../FrequencyDropdown';
-import { FrequencyInfoTooltip } from '../FrequencyInfoTooltip';
 
 interface ModifyStrategyModalProps {
   isOpen: boolean;
@@ -37,7 +36,6 @@ export function ModifyStrategyModal({
   onCancel
 }: ModifyStrategyModalProps) {
   const [isModifyFrequencyDropdownOpen, setIsModifyFrequencyDropdownOpen] = useState(false);
-  const [showFrequencyInfo, setShowFrequencyInfo] = useState(false);
 
   if (!isOpen || !strategy) return null;
 
@@ -83,15 +81,9 @@ export function ModifyStrategyModal({
         <div className='flex flex-col gap-4'>
           {/* Frequency */}
           <div className='flex flex-col gap-1'>
-            <div className='flex items-center gap-1'>
-              <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
-                Frequency
-              </label>
-              <FrequencyInfoTooltip
-                isOpen={showFrequencyInfo}
-                onToggle={() => setShowFrequencyInfo(!showFrequencyInfo)}
-              />
-            </div>
+            <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
+              Frequency
+            </label>
             <FrequencyDropdown
               frequencies={frequencies}
               selectedFrequency={frequency}

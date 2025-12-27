@@ -7,7 +7,6 @@ import { useGetNetworkConfig } from '@/lib';
 type NetworkConfig = ReturnType<typeof useGetNetworkConfig>['network'];
 import { TokenDropdown } from './TokenDropdown';
 import { FrequencyDropdown } from './FrequencyDropdown';
-import { FrequencyInfoTooltip } from './FrequencyInfoTooltip';
 
 interface CreateStrategyFormProps {
   tokens: MultiversXToken[];
@@ -54,7 +53,6 @@ export function CreateStrategyForm({
 }: CreateStrategyFormProps) {
   const [isTokenDropdownOpen, setIsTokenDropdownOpen] = useState(false);
   const [isFrequencyDropdownOpen, setIsFrequencyDropdownOpen] = useState(false);
-  const [showFrequencyInfo, setShowFrequencyInfo] = useState(false);
 
   const selectedSetup = setups?.find(s => s.dcaToken === token) || setup;
   const frequencies = selectedSetup && selectedSetup.allowedFrequencies && selectedSetup.allowedFrequencies.length > 0
@@ -100,15 +98,9 @@ export function CreateStrategyForm({
 
       <div className='grid gap-4 md:grid-cols-2'>
         <div className='flex flex-col gap-1'>
-          <div className='flex items-center gap-1'>
-            <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
-              Frequency
-            </label>
-            <FrequencyInfoTooltip
-              isOpen={showFrequencyInfo}
-              onToggle={() => setShowFrequencyInfo(!showFrequencyInfo)}
-            />
-          </div>
+          <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
+            Frequency
+          </label>
           <FrequencyDropdown
             frequencies={frequencies}
             selectedFrequency={frequency}
