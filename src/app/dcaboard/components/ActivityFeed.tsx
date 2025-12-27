@@ -23,20 +23,13 @@ export function ActivityFeed({
 
   return (
     <section className='relative mt-8 border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-6 shadow-sm'>
-      <div className='pointer-events-none absolute top-0 right-8 z-10 -translate-y-1/2'>
-        <Image
-          src='/assets/img/slothyoga.png'
-          alt='DCAi sloth yoga'
-          width={180}
-          height={180}
-          className='object-contain w-[90px] h-[90px] md:w-[180px] md:h-[180px]'
-        />
-      </div>
-
-      <h2 className='mb-4 text-sm font-semibold tracking-tight'>
-        Latest DCAi Activity
-      </h2>
-      <div className='flex flex-col gap-3'>
+      <div className='flex flex-col md:flex-row gap-6 items-start'>
+        {/* Activity feed - 1 column, half width on desktop */}
+        <div className='w-full md:w-1/2 min-w-0'>
+          <h2 className='mb-4 text-sm font-semibold tracking-tight'>
+            Latest DCAi Activity
+          </h2>
+          <div className='flex flex-col gap-3'>
         {activities.length === 0 ? (
           <p className='text-sm text-[hsl(var(--gray-300)/0.7)]'>
             No activity yet. Your DCAi transactions will appear here.
@@ -93,6 +86,20 @@ export function ActivityFeed({
             )}
           </>
         )}
+          </div>
+        </div>
+
+        {/* Sloth yoga image on the right - bigger */}
+        <div className='flex pointer-events-none flex-shrink-0 w-full pt-24 md:w-1/2 items-center justify-center mt-4 md:mt-0'>
+          <Image
+            src='/assets/img/slothyoga.png'
+            alt='DCAi sloth yoga'
+            width={400}
+            height={400}
+            className='object-contain'
+            style={{ maxWidth: '400px', width: '100%', height: 'auto' }}
+          />
+        </div>
       </div>
     </section>
   );
