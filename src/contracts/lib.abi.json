@@ -1,12 +1,12 @@
 {
     "buildInfo": {
         "rustc": {
-            "version": "1.91.1",
-            "commitHash": "ed61e7d7e242494fb7057f2657300d9e77bb4fcb",
-            "commitDate": "2025-11-07",
+            "version": "1.92.0",
+            "commitHash": "ded5c06cf21d2b93bffd5d884aa6e96934ee4234",
+            "commitDate": "2025-12-08",
             "channel": "Stable",
             "host": "x86_64-unknown-linux-gnu",
-            "short": "rustc 1.91.1 (ed61e7d7e 2025-11-07)",
+            "short": "rustc 1.92.0 (ded5c06cf 2025-12-08)",
             "llvmVersion": "21.1"
         },
         "contractCrate": {
@@ -422,13 +422,16 @@
                 "",
                 "### Returns",
                 "A `StrategyTokenAttributesAsType` containing the attributes of the strategy token:",
-                "* `amount_per_swap`: The amount to be swapped in each DCA operation",
-                "* `dca_frequency`: The frequency of the DCA operations",
-                "* `frequency_in_millis`: The frequency in milliseconds",
-                "* `take_profit_percentage`: The take profit percentage",
-                "* `usdc_balance`: The USDC balance associated with the strategy",
-                "* `token_balance`: The token balance associated with the strategy",
-                "* `last_executed_ts_millis`: The timestamp of the last execution in milliseconds"
+                "- `nonce`: The nonce of the strategy token NFT.",
+                "- `amount_per_swap`: The amount of USDC to be swapped in each DCA operation.",
+                "- `dca_frequency`: The frequency at which DCA operations are executed (e.g., daily, weekly).",
+                "- `frequency_in_millis`: The frequency in milliseconds for precise timing.",
+                "- `take_profit_percentage`: The percentage at which to take profit from DCA operations.",
+                "- `usdc_balance`: The current USDC balance allocated for DCA operations.",
+                "- `dca_token_balance`: The current balance of the token being acquired through DCA.",
+                "- `last_executed_ts_millis`: The timestamp in milliseconds of the last executed DCA operation.",
+                "- `buys`: A list of executed buy operations, each represented by a `Swap` struct (including usdc amount, dca token amount, and timestamp).",
+                "- `sells`: A list of executed sell operations, each represented by a `Swap` struct (including usdc amount, dca token amount, and timestamp)."
             ],
             "name": "getStrategyTokenAttributes",
             "mutability": "readonly",
@@ -462,6 +465,12 @@
                 },
                 {
                     "type": "u64"
+                },
+                {
+                    "type": "List<Swap>"
+                },
+                {
+                    "type": "List<Swap>"
                 }
             ]
         },
@@ -471,7 +480,7 @@
             "inputs": [],
             "outputs": [
                 {
-                    "type": "variadic<multi<u64,BigUint,bytes,u64,u64,BigUint,BigUint,u64>>",
+                    "type": "variadic<multi<u64,BigUint,bytes,u64,u64,BigUint,BigUint,u64,List<Swap>,List<Swap>>>",
                     "multi_result": true
                 }
             ]
@@ -751,6 +760,23 @@
     "esdtAttributes": [],
     "hasCallback": true,
     "types": {
+        "Swap": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "usdc_amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "dca_token_amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "timestamp_millis",
+                    "type": "u64"
+                }
+            ]
+        },
         "TokenWithdrawn": {
             "type": "enum",
             "variants": [

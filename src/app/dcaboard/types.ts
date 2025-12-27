@@ -9,6 +9,12 @@ export interface MultiversXToken {
   };
 }
 
+export interface Swap {
+  usdcAmount: string;
+  dcaTokenAmount: string;
+  timestampMillis: string;
+}
+
 export interface DcaStrategy {
   id: string;
   token: string;
@@ -22,6 +28,8 @@ export interface DcaStrategy {
   tokenBalance: number;
   lastExecutedTsMillis?: string;
   contractAddress: string;
+  buys?: Swap[];
+  sells?: Swap[];
 }
 
 export interface ActivityItem {

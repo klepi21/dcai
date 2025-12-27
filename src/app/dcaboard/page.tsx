@@ -263,7 +263,9 @@ export default function DCABoard() {
               availableUsdc: usdcBalance,
               tokenBalance: tokenBalance,
               lastExecutedTsMillis: lastExecutedTsMillis,
-              contractAddress: contractAddress // Store the contract address for deposit/withdraw
+              contractAddress: contractAddress, // Store the contract address for deposit/withdraw
+              buys: attributes.buys || [],
+              sells: attributes.sells || []
             };
             
             strategiesData.push(strategy);

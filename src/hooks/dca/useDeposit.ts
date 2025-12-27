@@ -84,7 +84,6 @@ export const useDeposit = () => {
 
       return { sessionId };
     } catch (error) {
-      console.error('Error in deposit function:', error);
       throw error;
     }
   };

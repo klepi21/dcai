@@ -69,7 +69,6 @@ export const useDeleteStrategy = () => {
 
       return { sessionId };
     } catch (error) {
-      console.error('Error in deleteStrategy function:', error);
       throw error;
     }
   };

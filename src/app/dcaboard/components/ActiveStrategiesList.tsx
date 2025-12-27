@@ -1,7 +1,10 @@
 'use client';
+import { useState } from 'react';
 import Image from 'next/image';
 import { DcaStrategy } from '../types';
 import { formatLastDca } from '../utils/formatTime';
+import { BuysModal } from './modals/BuysModal';
+import { SellsModal } from './modals/SellsModal';
 
 interface ActiveStrategiesListProps {
   strategies: DcaStrategy[];
@@ -26,6 +29,8 @@ export function ActiveStrategiesList({
   onDeposit,
   onWithdraw
 }: ActiveStrategiesListProps) {
+  const [showBuysModal, setShowBuysModal] = useState<{ strategyId: string; buys: typeof strategies[0]['buys'] } | null>(null);
+  const [showSellsModal, setShowSellsModal] = useState<{ strategyId: string; sells: typeof strategies[0]['sells'] } | null>(null);
   if (strategies.length === 0) {
     return (
       <p className='text-sm text-[hsl(var(--gray-300)/0.7)]'>
@@ -203,6 +208,24 @@ export function ActiveStrategiesList({
                     )}
                   </div>
 
+                  {/* Buys and Sells Buttons */}
+                  <div className='flex items-center gap-2 border-t border-[hsl(var(--gray-300)/0.2)] pt-3'>
+                    <button
+                      type='button'
+                      onClick={() => setShowBuysModal({ strategyId: currentStrategy.id, buys: currentStrategy.buys || [] })}
+                      className='flex-1 text-xs px-3 py-1.5 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] hover:border-[hsl(var(--sky-300)/0.5)] hover:text-[hsl(var(--sky-300))] hover:bg-[hsl(var(--gray-300)/0.05)] transition-colors rounded'
+                    >
+                      Buys ({currentStrategy.buys?.length || 0})
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => setShowSellsModal({ strategyId: currentStrategy.id, sells: currentStrategy.sells || [] })}
+                      className='flex-1 text-xs px-3 py-1.5 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] hover:border-[hsl(var(--red-300)/0.5)] hover:text-[hsl(var(--red-300))] hover:bg-[hsl(var(--gray-300)/0.05)] transition-colors rounded'
+                    >
+                      Sells ({currentStrategy.sells?.length || 0})
+                    </button>
+                  </div>
+
                   <div className='flex flex-wrap gap-2'>
                     <button
                       type='button'
@@ -234,6 +257,24 @@ export function ActiveStrategiesList({
           </div>
         );
       })}
+
+      {/* Modals */}
+      {showBuysModal && showBuysModal.buys && (
+        <BuysModal
+          isOpen={true}
+          buys={showBuysModal.buys}
+          token={strategies.find(s => s.id === showBuysModal.strategyId)?.token || ''}
+          onClose={() => setShowBuysModal(null)}
+        />
+      )}
+      {showSellsModal && showSellsModal.sells && (
+        <SellsModal
+          isOpen={true}
+          sells={showSellsModal.sells}
+          token={strategies.find(s => s.id === showSellsModal.strategyId)?.token || ''}
+          onClose={() => setShowSellsModal(null)}
+        />
+      )}
     </div>
   );
 }

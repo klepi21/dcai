@@ -98,7 +98,6 @@ export const useModifyStrategy = () => {
 
       return { sessionId };
     } catch (error) {
-      console.error('Error in modifyStrategy function:', error);
       throw error;
     }
   };

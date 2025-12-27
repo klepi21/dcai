@@ -93,7 +93,6 @@ export const useWithdraw = () => {
 
       return { sessionId };
     } catch (error) {
-      console.error('Error in withdraw function:', error);
       throw error;
     }
   };

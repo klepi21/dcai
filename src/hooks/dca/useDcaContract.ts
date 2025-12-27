@@ -58,6 +58,12 @@ const encodeU64 = (value: number | string): string => {
   }
 };
 
+export interface Swap {
+  usdcAmount: string; // BigUint (in USDC smallest units)
+  dcaTokenAmount: string; // BigUint (in token smallest units)
+  timestampMillis: string; // u64
+}
+
 export interface StrategyTokenAttributes {
   amountPerSwap: string; // BigUint (in USDC smallest units)
   dcaFrequency: string; // bytes (frequency name)
@@ -66,6 +72,8 @@ export interface StrategyTokenAttributes {
   usdcBalance: string; // BigUint (in USDC smallest units)
   tokenBalance: string; // BigUint (in token smallest units)
   lastExecutedTsMillis: string; // u64
+  buys: Swap[]; // List<Swap>
+  sells: Swap[]; // List<Swap>
 }
 
 export const useDcaContract = () => {
@@ -340,12 +348,12 @@ export const useDcaContract = () => {
       
       const returnData = data.data?.data?.returnData;
       
-      if (!returnData || returnData.length < 8) {
-        throw new Error('Invalid response: insufficient data returned (expected 8 values)');
+      if (!returnData || returnData.length < 10) {
+        throw new Error('Invalid response: insufficient data returned (expected 10 values)');
       }
 
       // Parse the response according to ABI
-      // Returns: [u64, BigUint, bytes, u64, u64, BigUint, BigUint, u64]
+      // Returns: [u64, BigUint, bytes, u64, u64, BigUint, BigUint, u64, List<Swap>, List<Swap>]
       // 0: u64 (nonce - can be ignored, we already have it)
       // 1: amount_per_swap (BigUint)
       // 2: dca_frequency (bytes)
@@ -354,10 +362,8 @@ export const useDcaContract = () => {
       // 5: usdc_balance (BigUint)
       // 6: dca_token_balance (BigUint)
       // 7: last_executed_ts_millis (u64)
-
-      if (!returnData || returnData.length < 8) {
-        throw new Error('Invalid response: insufficient data returned (expected 8 values)');
-      }
+      // 8: List<Swap> (buys)
+      // 9: List<Swap> (sells)
 
       // Skip index 0 (nonce u64) and start from index 1
       const amountPerSwapHex = returnData[1] ? base64ToHex(returnData[1]) : '0';
@@ -380,11 +386,124 @@ export const useDcaContract = () => {
       const lastExecutedTsMillisHex = returnData[7] ? base64ToHex(returnData[7]) : '0';
       const lastExecutedTsMillis = hexToDecimal(lastExecutedTsMillisHex);
 
-      // Convert balances to readable format (USDC has 6 decimals)
-      const usdcDecimals = 1000000; // 10^6
-      const usdcBalanceFormatted = parseFloat(usdcBalance) / usdcDecimals;
-      const dcaTokenBalanceFormatted = parseFloat(dcaTokenBalance) / usdcDecimals; // Assuming same decimals for token
-      const amountPerSwapFormatted = parseFloat(amountPerSwap) / usdcDecimals;
+      // Helper function to parse List<Swap>
+      // According to MultiversX ABI, List<Swap> is encoded as a single base64 string
+      // The encoding format: [4-byte usdc_length (u32, big-endian)] + [usdc_bytes] + [4-byte token_length (u32, big-endian)] + [token_bytes] + [8-byte timestamp (u64, big-endian)]
+      // Note: Both usdc_length and token_length are u32 (4 bytes), NOT 1 byte!
+      const parseSwapList = (listData: any, listName: string): Swap[] => {
+        const swaps: Swap[] = [];
+        
+        if (!listData || (typeof listData === 'string' && listData === '')) {
+          return swaps;
+        }
+
+        try {
+          // MultiversX returns List<Swap> as a single base64-encoded string
+          if (typeof listData !== 'string') {
+            return swaps;
+          }
+          
+          // Decode base64 to bytes
+          const bytes = Uint8Array.from(Buffer.from(listData, 'base64'));
+
+          if (bytes.length < 4) {
+            return swaps;
+          }
+
+          // Parse multiple Swap structs until we reach the end
+          // Each Swap: [4-byte usdc_length] + [usdc_bytes] + [4-byte token_length] + [token_bytes] + [8-byte timestamp]
+          let offset = 0;
+
+          while (offset < bytes.length) {
+            // Check if we have enough bytes for usdc_length (4 bytes)
+            if (offset + 4 > bytes.length) {
+              break;
+            }
+
+            // Read usdc_length (u32, big-endian)
+            const usdcLength = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+            offset += 4;
+
+            if (usdcLength === 0) {
+              // Zero length means we're done or there's an issue
+              break;
+            }
+
+            // Check if we have enough bytes for usdc_amount
+            if (offset + usdcLength > bytes.length) {
+              break;
+            }
+
+            // Read usdc_amount (BigUint)
+            const usdcBytes = bytes.slice(offset, offset + usdcLength);
+            const usdcHex = Array.from(usdcBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+            const usdcHexTrimmed = usdcHex.replace(/^0+/, '') || '0';
+            const usdcAmount = hexToDecimal(usdcHexTrimmed || '0');
+            offset += usdcLength;
+
+            // Check if we have enough bytes for token_length (4 bytes)
+            if (offset + 4 > bytes.length) {
+              break;
+            }
+
+            // Read token_length (u32, big-endian)
+            const tokenLength = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+            offset += 4;
+
+            let dcaTokenAmount: string;
+            if (tokenLength === 0) {
+              // Zero-length means value is 0
+              dcaTokenAmount = '0';
+            } else {
+              // Check if we have enough bytes for token_amount
+              if (offset + tokenLength > bytes.length) {
+                break;
+              }
+              const tokenBytes = bytes.slice(offset, offset + tokenLength);
+              const tokenHex = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+              const tokenHexTrimmed = tokenHex.replace(/^0+/, '') || '0';
+              dcaTokenAmount = hexToDecimal(tokenHexTrimmed || '0');
+              offset += tokenLength;
+            }
+
+            // Check if we have enough bytes for timestamp (8 bytes)
+            if (offset + 8 > bytes.length) {
+              break;
+            }
+
+            // Read timestamp as big-endian u64
+            let timestamp = BigInt(0);
+            const timestampBytes = bytes.slice(offset, offset + 8);
+            
+            // Read the bytes (most significant bytes first, big-endian)
+            for (let j = 0; j < 8; j++) {
+              timestamp = (timestamp << BigInt(8)) | BigInt(timestampBytes[j]);
+            }
+            
+            const timestampMillis = timestamp.toString();
+            offset += 8;
+
+            const swap: Swap = {
+              usdcAmount: usdcAmount || '0',
+              dcaTokenAmount: dcaTokenAmount || '0',
+              timestampMillis
+            };
+            swaps.push(swap);
+          }
+
+        } catch (error) {
+          // Return what we've parsed so far, even if there was an error
+        }
+
+        return swaps;
+      };
+
+
+      // Parse List<Swap> for buys (index 8)
+      const buys = parseSwapList(returnData[8], 'buys');
+
+      // Parse List<Swap> for sells (index 9)
+      const sells = parseSwapList(returnData[9], 'sells');
 
       const attributes = {
         amountPerSwap,
@@ -393,7 +512,9 @@ export const useDcaContract = () => {
         takeProfitPercentage,
         usdcBalance,
         tokenBalance: dcaTokenBalance, // Keep tokenBalance for backward compatibility
-        lastExecutedTsMillis
+        lastExecutedTsMillis,
+        buys,
+        sells
       };
 
       return attributes;
