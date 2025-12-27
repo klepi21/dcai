@@ -1067,11 +1067,9 @@ export default function DCABoard() {
   }, 0);
 
   return (
-    <div className='flex w-full justify-center overflow-visible'>
+    <div className='flex w-full justify-center overflow-visible relative'>
       <div className='flex w-full max-w-6xl flex-col gap-12 bg-background text-foreground overflow-visible'>
-        <div className='w-full md:w-1/2'>
-          <PortfolioHeader totalPortfolio={totalPortfolio} />
-        </div>
+        <PortfolioHeader totalPortfolio={totalPortfolio} />
 
         <section className='relative grid gap-8 border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-6 shadow-sm md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)]'>
           <div className='pointer-events-none absolute -top-20 pt-2 left-2 z-10'>

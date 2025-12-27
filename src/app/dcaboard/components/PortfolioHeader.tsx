@@ -1,29 +1,59 @@
+import Image from 'next/image';
+
 interface PortfolioHeaderProps {
   totalPortfolio: number;
 }
 
 export function PortfolioHeader({ totalPortfolio }: PortfolioHeaderProps) {
   return (
-    <section className='flex flex-col gap-1 overflow-visible'>
-      <div className='flex flex-col gap-0.5'>
-        <h1 className='text-2xl font-semibold tracking-tight'>DCA Board</h1>
-        <p className='max-w-xl text-sm text-[hsl(var(--gray-300)/0.8)]'>
-          Orchestrate AI-assisted dollar cost averaging strategies on MultiversX.
-          Review balances, fund your DCA vault, and fine-tune each strategy&apos;s
-          risk and take-profit behaviour.
-        </p>
-      </div>
+    <>
+      <style jsx>{`
+        .stacking-image {
+          display: none;
+        }
+        @media (min-width: 728px) {
+          .stacking-image {
+            display: block;
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 50;
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+          }
+        }
+      `}</style>
+      <section className='relative flex flex-col gap-1 overflow-visible w-full min-h-[200px]'>
+        <div className='flex flex-col gap-0.5'>
+          <h1 className='text-2xl font-semibold tracking-tight'>DCA Board</h1>
+          <p className='max-w-xl text-sm text-[hsl(var(--gray-300)/0.8)]'>
+            Orchestrate AI-assisted dollar cost averaging strategies on MultiversX.
+            Review balances, fund your DCA vault, and fine-tune each strategy&apos;s
+            risk and take-profit behaviour.
+          </p>
+        </div>
 
-      <div className='border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-5 shadow-sm'>
-        <h2 className='text-xs font-semibold uppercase tracking-[0.25em] text-[hsl(var(--sky-300)/0.9)]'>
-          Portfolio
-        </h2>
-        <p className='mt-3 text-2xl font-bold'>${totalPortfolio.toFixed(2)}</p>
-        <p className='mt-1 text-xs text-[hsl(var(--gray-300)/0.7)]'>
-          Total value across all DCA strategies.
-        </p>
-      </div>
-    </section>
+        <div className='flex flex-col md:flex-row gap-4 items-end relative w-full overflow-visible'>
+          <div className='border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-5 shadow-sm md:w-1/2'>
+            <h2 className='text-xs font-semibold uppercase tracking-[0.25em] text-[hsl(var(--sky-300)/0.9)]'>
+              Portfolio
+            </h2>
+            <p className='mt-3 text-2xl font-bold'>${totalPortfolio.toFixed(2)}</p>
+            <p className='mt-1 text-xs text-[hsl(var(--gray-300)/0.7)]'>
+              Total value across all DCA strategies.
+            </p>
+          </div>
+        </div>
+        
+        <img
+          src='/assets/img/stacking.png'
+          alt='Stacking'
+          className='stacking-image'
+        />
+      </section>
+    </>
   );
 }
 
