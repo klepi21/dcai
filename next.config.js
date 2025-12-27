@@ -16,6 +16,11 @@ const nextConfig = {
         hostname: 'tools.multiversx.com',
         pathname: '/assets-cdn/**/tokens/**',
       },
+      {
+        protocol: 'https',
+        hostname: 's2.coinmarketcap.com',
+        pathname: '/static/img/coins/**',
+      },
     ],
   },
   webpack: (config) => {

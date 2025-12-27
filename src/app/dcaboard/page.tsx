@@ -472,19 +472,24 @@ export default function DCABoard() {
         const networkPath = getNetworkPath(network);
         setups.forEach((setupItem) => {
           const dcaTokenIdentifier = setupItem.dcaToken;
-          if (dcaTokenIdentifier && dcaTokenIdentifier !== 'EGLD' && !seenTokens.has(dcaTokenIdentifier)) {
+          if (dcaTokenIdentifier && !seenTokens.has(dcaTokenIdentifier)) {
             seenTokens.add(dcaTokenIdentifier);
             const tokenTicker = dcaTokenIdentifier.split('-')[0] || dcaTokenIdentifier;
             
-            // Use dcaToken directly as the identifier for the image with network path
+            // Special handling for EGLD - use CoinMarketCap image
+            const isEGLD = dcaTokenIdentifier === 'EGLD';
+            const iconUrl = isEGLD 
+              ? 'https://s2.coinmarketcap.com/static/img/coins/200x200/6892.png'
+              : `https://tools.multiversx.com/assets-cdn/${networkPath}/tokens/${dcaTokenIdentifier}/icon.png`;
+            
             contractTokens.push({
               identifier: dcaTokenIdentifier,
               name: tokenTicker,
               ticker: tokenTicker,
               decimals: 18, // Default, might need to fetch from API
               assets: {
-                svgUrl: `https://tools.multiversx.com/assets-cdn/${networkPath}/tokens/${dcaTokenIdentifier}/icon.png`,
-                pngUrl: `https://tools.multiversx.com/assets-cdn/${networkPath}/tokens/${dcaTokenIdentifier}/icon.png`
+                svgUrl: iconUrl,
+                pngUrl: iconUrl
               }
             });
           }
@@ -859,7 +864,7 @@ export default function DCABoard() {
 
   return (
     <div className='flex w-full justify-center overflow-visible'>
-      <div className='flex w-full max-w-6xl flex-col gap-10 bg-background text-foreground overflow-visible'>
+      <div className='flex w-full max-w-6xl flex-col gap-12 bg-background text-foreground overflow-visible'>
         <PortfolioHeader totalPortfolio={totalPortfolio} />
 
         <section className='relative grid gap-8 border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-6 shadow-sm md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)]'>
