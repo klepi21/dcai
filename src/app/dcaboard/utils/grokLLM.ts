@@ -1,9 +1,5 @@
 import { LLMAnalysisResponse } from '../types';
 
-const GROK_API_KEY = process.env.NEXT_PUBLIC_GROK_API_KEY;
-const GROK_API_BASE = 'https://api.x.ai/v1';
-const GROK_MODEL = 'grok-3';
-
 // Rate limiting: max 3 requests per 5 minutes per user
 const RATE_LIMIT_WINDOW = 5 * 60 * 1000; // 5 minutes
 const MAX_REQUESTS_PER_WINDOW = 3;
@@ -66,71 +62,44 @@ export async function analyzeStrategyWithGrok(
 ): Promise<LLMAnalysisResponse> {
   // Check rate limit before making API call
   checkRateLimit();
-  // Optimized prompt - reduced from ~400-500 tokens to ~200-250 tokens
-  const priceStr = marketStats.price !== null ? marketStats.price.toFixed(6) : 'N/A';
-  const liqStr = marketStats.totalLiquidity !== null ? marketStats.totalLiquidity.toFixed(0) : 'N/A';
-  const volStr = marketStats.totalVolume24h !== null ? marketStats.totalVolume24h.toFixed(0) : 'N/A';
-  
-  const prompt = `Analyze DCA strategy. Token: ${strategy.token}, Swap: $${strategy.usdcPerSwap}, Freq: ${strategy.frequency}, TP: ${strategy.takeProfit}%, Duration: ${strategy.plannedDuration}d. Market: Price $${priceStr}, Liq $${liqStr}, Vol24h $${volStr}.
-
-Tasks: Detect risks/inefficiencies, explain using stats, suggest param improvements (keep strategy type), classify risk (LOW/MEDIUM/HIGH), provide specific param values.
-
-Output JSON only:
-{"risk_level":"LOW|MEDIUM|HIGH","issues":["issue1"],"suggestions":["suggestion1"],"expected_effect":"brief effect","suggested_parameters":{"usdc_per_swap":50.0|null,"frequency":"daily"|null,"take_profit":10.0|null}}`;
 
   try {
-    const response = await fetch(`${GROK_API_BASE}/chat/completions`, {
+    // Call our server-side API route instead of Grok directly
+    const response = await fetch('/api/analyze-strategy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROK_API_KEY}`
       },
       body: JSON.stringify({
-        model: GROK_MODEL,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.5, // Lower temperature for more focused responses
-        max_tokens: 500 // Reduced from 1000 to save tokens
+        strategy,
+        marketStats
       })
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Grok API error: ${response.status} - ${errorText}`);
+      const errorData = await response.json();
+      // Check if there's a fallback response
+      if (errorData.fallback) {
+        return errorData.fallback;
+      }
+      throw new Error(errorData.error || `API error: ${response.status}`);
     }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    
-    if (!content) {
-      throw new Error('No response from Grok API');
-    }
-
-    // Try to extract JSON from the response (handle markdown code blocks)
-    let jsonContent = content.trim();
-    if (jsonContent.startsWith('```')) {
-      jsonContent = jsonContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    }
-
-    const analysis = JSON.parse(jsonContent) as LLMAnalysisResponse;
+    const analysis = await response.json() as LLMAnalysisResponse;
     
     // Validate the response structure
     if (!analysis.risk_level || !Array.isArray(analysis.issues) || !Array.isArray(analysis.suggestions)) {
-      throw new Error('Invalid response format from Grok API');
+      throw new Error('Invalid response format from API');
     }
 
-    // Ensure suggested_parameters exists (even if null values)
+    // Ensure suggested_parameters exists
     if (!analysis.suggested_parameters) {
       analysis.suggested_parameters = {};
     }
 
     return analysis;
   } catch (error) {
-    console.error('Error calling Grok API:', error);
+    console.error('Error calling analyze-strategy API:', error);
     // Return a default response on error
     return {
       risk_level: 'MEDIUM',
