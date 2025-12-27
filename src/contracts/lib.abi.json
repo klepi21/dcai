@@ -1,12 +1,12 @@
 {
     "buildInfo": {
         "rustc": {
-            "version": "1.92.0",
-            "commitHash": "ded5c06cf21d2b93bffd5d884aa6e96934ee4234",
-            "commitDate": "2025-12-08",
+            "version": "1.91.1",
+            "commitHash": "ed61e7d7e242494fb7057f2657300d9e77bb4fcb",
+            "commitDate": "2025-11-07",
             "channel": "Stable",
             "host": "x86_64-unknown-linux-gnu",
-            "short": "rustc 1.92.0 (ded5c06cf 2025-12-08)",
+            "short": "rustc 1.91.1 (ed61e7d7e 2025-11-07)",
             "llvmVersion": "21.1"
         },
         "contractCrate": {
@@ -155,7 +155,19 @@
             "outputs": []
         },
         {
-            "name": "swap",
+            "name": "buy",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "nonces",
+                    "type": "variadic<u64>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "takeProfit",
             "mutability": "mutable",
             "inputs": [
                 {
@@ -292,6 +304,37 @@
                     "multi_result": true
                 }
             ]
+        },
+        {
+            "name": "burn",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "nonce",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "withdrawBalance",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token",
+                    "type": "EgldOrEsdtTokenIdentifier"
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
         },
         {
             "name": "createStrategy",
@@ -485,7 +528,7 @@
             ]
         },
         {
-            "identifier": "swapExecuted",
+            "identifier": "buyExecuted",
             "inputs": [
                 {
                     "name": "nonce",
@@ -493,13 +536,34 @@
                     "indexed": true
                 },
                 {
-                    "name": "amount_swapped",
+                    "name": "usdc_amount",
                     "type": "BigUint",
                     "indexed": true
                 },
                 {
-                    "name": "amount_received",
-                    "type": "BigUint"
+                    "name": "dca_token_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "sellExecuted",
+            "inputs": [
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "dca_token_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "usdc_amount",
+                    "type": "BigUint",
+                    "indexed": true
                 }
             ]
         },

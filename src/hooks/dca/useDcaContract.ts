@@ -344,7 +344,7 @@ export const useDcaContract = () => {
         throw new Error('Invalid response: insufficient data returned (expected 8 values)');
       }
 
-      // Parse the response
+      // Parse the response according to ABI
       // Returns: [u64, BigUint, bytes, u64, u64, BigUint, BigUint, u64]
       // 0: u64 (nonce - can be ignored, we already have it)
       // 1: amount_per_swap (BigUint)
@@ -352,7 +352,7 @@ export const useDcaContract = () => {
       // 3: frequency_in_millis (u64)
       // 4: take_profit_percentage (u64)
       // 5: usdc_balance (BigUint)
-      // 6: token_balance (BigUint)
+      // 6: dca_token_balance (BigUint)
       // 7: last_executed_ts_millis (u64)
 
       if (!returnData || returnData.length < 8) {
@@ -374,8 +374,8 @@ export const useDcaContract = () => {
       const usdcBalanceHex = returnData[5] ? base64ToHex(returnData[5]) : '0';
       const usdcBalance = hexToDecimal(usdcBalanceHex);
 
-      const tokenBalanceHex = returnData[6] ? base64ToHex(returnData[6]) : '0';
-      const tokenBalance = hexToDecimal(tokenBalanceHex);
+      const dcaTokenBalanceHex = returnData[6] ? base64ToHex(returnData[6]) : '0';
+      const dcaTokenBalance = hexToDecimal(dcaTokenBalanceHex);
 
       const lastExecutedTsMillisHex = returnData[7] ? base64ToHex(returnData[7]) : '0';
       const lastExecutedTsMillis = hexToDecimal(lastExecutedTsMillisHex);
@@ -383,7 +383,7 @@ export const useDcaContract = () => {
       // Convert balances to readable format (USDC has 6 decimals)
       const usdcDecimals = 1000000; // 10^6
       const usdcBalanceFormatted = parseFloat(usdcBalance) / usdcDecimals;
-      const tokenBalanceFormatted = parseFloat(tokenBalance) / usdcDecimals; // Assuming same decimals for token
+      const dcaTokenBalanceFormatted = parseFloat(dcaTokenBalance) / usdcDecimals; // Assuming same decimals for token
       const amountPerSwapFormatted = parseFloat(amountPerSwap) / usdcDecimals;
 
       const attributes = {
@@ -392,7 +392,7 @@ export const useDcaContract = () => {
         frequencyInMillis,
         takeProfitPercentage,
         usdcBalance,
-        tokenBalance,
+        tokenBalance: dcaTokenBalance, // Keep tokenBalance for backward compatibility
         lastExecutedTsMillis
       };
 

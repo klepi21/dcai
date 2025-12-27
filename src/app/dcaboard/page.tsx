@@ -2,33 +2,17 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useDcaContract, useCreateStrategy, useDeposit, useWithdraw, useDeleteStrategy, useModifyStrategy } from '@/hooks';
-import { useGetAccount, useGetNetworkConfig, Address, getActiveTransactionsStatus, TransactionManager } from '@/lib';
-
-interface MultiversXToken {
-  identifier: string;
-  name: string;
-  ticker: string;
-  decimals: number;
-  assets?: {
-    pngUrl?: string;
-    svgUrl?: string;
-  };
-}
-
-interface DcaStrategy {
-  id: string;
-  token: string;
-  tokenIdentifier: string;
-  tokenLogo?: string;
-  frequency: string;
-  amountPerDca: number;
-  takeProfitPct?: number;
-  isActive: boolean;
-  availableUsdc: number;
-  tokenBalance: number;
-  lastExecutedTsMillis?: string; // Timestamp of last execution in milliseconds
-  contractAddress: string; // DCA contract address (bech32 format)
-}
+import { useGetAccount, useGetNetworkConfig, getActiveTransactionsStatus } from '@/lib';
+import { MultiversXToken, DcaStrategy, ActivityItem } from './types';
+import { PortfolioHeader } from './components/PortfolioHeader';
+import { CreateStrategyForm } from './components/CreateStrategyForm';
+import { ActiveStrategiesList } from './components/ActiveStrategiesList';
+import { ActivityFeed } from './components/ActivityFeed';
+import { DepositModal } from './components/modals/DepositModal';
+import { WithdrawModal } from './components/modals/WithdrawModal';
+import { DeleteModal } from './components/modals/DeleteModal';
+import { ModifyStrategyModal } from './components/modals/ModifyStrategyModal';
+import { getNetworkPath, getApiUrl } from './utils/network';
 
 export default function DCABoard() {
   const { setup, setups, loading: loadingSetup, error: setupError, queryGetStrategyTokenAttributes } = useDcaContract();
@@ -48,9 +32,6 @@ export default function DCABoard() {
   const [amountPerDca, setAmountPerDca] = useState<string>('');
   const [showTakeProfit, setShowTakeProfit] = useState<boolean>(false);
   const [takeProfitPct, setTakeProfitPct] = useState<string>('15');
-  const [isTokenDropdownOpen, setIsTokenDropdownOpen] = useState<boolean>(false);
-  const [isFrequencyDropdownOpen, setIsFrequencyDropdownOpen] = useState<boolean>(false);
-  const [isModifyFrequencyDropdownOpen, setIsModifyFrequencyDropdownOpen] = useState<boolean>(false);
   // State for expandable strategy groups
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [strategyIndices, setStrategyIndices] = useState<Record<string, number>>({});
@@ -93,8 +74,6 @@ export default function DCABoard() {
   });
   // State for user's USDC wallet balance
   const [usdcWalletBalance, setUsdcWalletBalance] = useState<number>(0);
-  // State for frequency info tooltip
-  const [showFrequencyInfo, setShowFrequencyInfo] = useState<boolean>(false);
   // State for activity items
   const [activities, setActivities] = useState<Array<{
     type: 'deposit' | 'createStrategy' | 'modifyStrategy' | 'deleteStrategy';
@@ -131,19 +110,6 @@ export default function DCABoard() {
     }
   }, [strategies]);
 
-  // Helper function to get network path for token images
-  const getNetworkPath = (): string => {
-    if (network.apiAddress) {
-      if (network.apiAddress.includes('devnet')) {
-        return 'devnet';
-      } else if (network.apiAddress.includes('testnet')) {
-        return 'testnet';
-      } else {
-        return 'mainnet';
-      }
-    }
-    return 'devnet'; // Default to devnet
-  };
 
   // Fetch user's Meta ESDT tokens starting with "DCAI"
   // This function is extracted so it can be called manually after transactions
@@ -157,16 +123,7 @@ export default function DCABoard() {
 
     try {
       // Determine API URL based on network
-      let apiUrl = 'https://devnet-api.multiversx.com';
-      if (network.apiAddress) {
-        if (network.apiAddress.includes('devnet')) {
-          apiUrl = 'https://devnet-api.multiversx.com';
-        } else if (network.apiAddress.includes('testnet')) {
-          apiUrl = 'https://testnet-api.multiversx.com';
-        } else {
-          apiUrl = 'https://api.multiversx.com';
-        }
-      }
+      const apiUrl = getApiUrl(network);
 
       // ONE API call to get all Meta ESDT tokens
       const tokensUrl = `${apiUrl}/accounts/${address}/tokens?includeMetaESDT=true`;
@@ -250,17 +207,8 @@ export default function DCABoard() {
           if (!isMountedRef.current) break; // Check after async call
           
           if (attributes) {
-            // Get network path for token images
-            let networkPathForImages = 'devnet';
-          if (network.apiAddress) {
-            if (network.apiAddress.includes('devnet')) {
-              networkPathForImages = 'devnet';
-            } else if (network.apiAddress.includes('testnet')) {
-              networkPathForImages = 'testnet';
-            } else {
-              networkPathForImages = 'mainnet';
-            }
-          }
+          // Get network path for token images
+          const networkPathForImages = getNetworkPath(network);
           
           // Find the setup that matches this token ticker to get the correct dcaToken for the image
           const matchingSetup = setups?.find(s => {
@@ -347,16 +295,7 @@ export default function DCABoard() {
 
     try {
       // Determine API URL based on network
-      let apiUrl = 'https://devnet-api.multiversx.com';
-      if (network.apiAddress) {
-        if (network.apiAddress.includes('devnet')) {
-          apiUrl = 'https://devnet-api.multiversx.com';
-        } else if (network.apiAddress.includes('testnet')) {
-          apiUrl = 'https://testnet-api.multiversx.com';
-        } else {
-          apiUrl = 'https://api.multiversx.com';
-        }
-      }
+      const apiUrl = getApiUrl(network);
 
       const functions = ['deposit', 'createStrategy', 'modifyStrategy', 'deleteStrategy'];
       const allActivities: Array<{
@@ -530,7 +469,7 @@ export default function DCABoard() {
         const seenTokens = new Set<string>();
         
         // Add all unique dcaTokens from all setups
-        const networkPath = getNetworkPath();
+        const networkPath = getNetworkPath(network);
         setups.forEach((setupItem) => {
           const dcaTokenIdentifier = setupItem.dcaToken;
           if (dcaTokenIdentifier && dcaTokenIdentifier !== 'EGLD' && !seenTokens.has(dcaTokenIdentifier)) {
@@ -743,16 +682,7 @@ export default function DCABoard() {
 
     try {
       // Determine API URL based on network
-      let apiUrl = 'https://devnet-api.multiversx.com';
-      if (network.apiAddress) {
-        if (network.apiAddress.includes('devnet')) {
-          apiUrl = 'https://devnet-api.multiversx.com';
-        } else if (network.apiAddress.includes('testnet')) {
-          apiUrl = 'https://testnet-api.multiversx.com';
-        } else {
-          apiUrl = 'https://api.multiversx.com';
-        }
-      }
+      const apiUrl = getApiUrl(network);
 
       // Fetch user's tokens
       const tokensUrl = `${apiUrl}/accounts/${address}/tokens`;
@@ -928,39 +858,9 @@ export default function DCABoard() {
   const totalPortfolio = strategies.reduce((sum, s) => sum + s.availableUsdc, 0);
 
   return (
-    <div className='flex w-full justify-center'>
-      <div className='flex w-full max-w-6xl flex-col gap-10 bg-background text-foreground'>
-        <section className='grid gap-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center'>
-          <div className='flex flex-col gap-6'>
-            <div className='flex flex-col gap-2'>
-              <h1 className='text-2xl font-semibold tracking-tight'>DCA Board</h1>
-              <p className='max-w-xl text-sm text-[hsl(var(--gray-300)/0.8)]'>
-                Orchestrate AI-assisted dollar cost averaging strategies on MultiversX.
-                Review balances, fund your DCA vault, and fine-tune each strategy&apos;s
-                risk and take-profit behaviour.
-              </p>
-            </div>
-
-            <div className='border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-5 shadow-sm max-w-md'>
-              <h2 className='text-xs font-semibold uppercase tracking-[0.25em] text-[hsl(var(--sky-300)/0.9)]'>
-                Portfolio
-              </h2>
-              <p className='mt-3 text-2xl font-bold'>${totalPortfolio.toFixed(2)}</p>
-              <p className='mt-1 text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                Total value across all DCA strategies.
-              </p>
-            </div>
-          </div>
-          <div className='flex justify-center md:justify-end'>
-            <Image
-              src='/assets/img/stacking.png'
-              alt='DCAi staking illustration'
-              width={360}
-              height={360}
-              className='object-contain w-[180px] h-[180px] md:w-[360px] md:h-[360px]'
-            />
-          </div>
-        </section>
+    <div className='flex w-full justify-center overflow-visible'>
+      <div className='flex w-full max-w-6xl flex-col gap-10 bg-background text-foreground overflow-visible'>
+        <PortfolioHeader totalPortfolio={totalPortfolio} />
 
         <section className='relative grid gap-8 border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-6 shadow-sm md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)]'>
           <div className='pointer-events-none absolute -top-20 pt-2 left-2 z-10'>
@@ -973,1108 +873,109 @@ export default function DCABoard() {
             />
           </div>
 
-          <form className='flex flex-col gap-4' onSubmit={handleAddStrategy}>
-            <div className='flex items-center justify-between'>
-              <h2 className='text-sm font-semibold tracking-tight'>
-                Create a DCA strategy
-              </h2>
-              {setupError && (
-                <span className='text-xs text-red-500'>{setupError}</span>
-              )}
-            </div>
-
-            <div className='flex flex-col gap-1'>
-              <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
-                Token to DCA into
-              </label>
-              {loadingTokens ? (
-                <div className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm flex items-center text-[hsl(var(--gray-300)/0.6)]'>
-                  Loading tokens...
-                </div>
-              ) : (
-                <div className='relative'>
-                  <button
-                    type='button'
-                    onClick={() => setIsTokenDropdownOpen(!isTokenDropdownOpen)}
-                    className='flex h-9 w-full items-center gap-2 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-left text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
-                  >
-                    {(() => {
-                      const selectedToken = tokens.find(t => (t.identifier || t.ticker) === token);
-                      // Use dcaToken identifier directly for the image with network path
-                      const networkPath = getNetworkPath();
-                      const tokenIcon = selectedToken?.assets?.pngUrl || selectedToken?.assets?.svgUrl || 
-                        (selectedToken?.identifier 
-                          ? `https://tools.multiversx.com/assets-cdn/${networkPath}/tokens/${selectedToken.identifier}/icon.png`
-                          : undefined);
-                      return (
-                        <>
-                          {tokenIcon && (
-                            <Image
-                              src={tokenIcon}
-                              alt={selectedToken?.ticker || ''}
-                              width={20}
-                              height={20}
-                              className='flex-shrink-0'
-                              onError={(e) => {
-                                // Hide the image on error (especially for WEGLD)
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
-                          )}
-                          <span className='flex-1'>
-                            {selectedToken?.ticker}
-                          </span>
-                          <span className='text-[hsl(var(--gray-300)/0.6)]'>▼</span>
-                        </>
-                      );
-                    })()}
-                  </button>
-                  
-                  {isTokenDropdownOpen && (
-                    <>
-                      <div
-                        className='fixed inset-0 z-10'
-                        onClick={() => setIsTokenDropdownOpen(false)}
-                      />
-                      <div className='absolute z-20 mt-1 max-h-60 w-full overflow-auto border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] shadow-lg'>
-                        {tokens.map((t) => {
-                          // Use dcaToken identifier directly for the image with network path
-                          const networkPath = getNetworkPath();
-                          const tokenIcon = t.assets?.pngUrl || t.assets?.svgUrl ||
-                            (t.identifier 
-                              ? `https://tools.multiversx.com/assets-cdn/${networkPath}/tokens/${t.identifier}/icon.png`
-                              : undefined);
-                          const isSelected = (t.identifier || t.ticker) === token;
-                          return (
-                            <button
-                              key={t.identifier || t.ticker}
-                              type='button'
-                              onClick={() => {
-                                const newToken = t.identifier || t.ticker;
-                                setToken(newToken);
-                                setIsTokenDropdownOpen(false);
-                                
-                                // Update frequency and min amount for the selected token
-                                const selectedSetup = setups?.find(s => s.dcaToken === newToken);
-                                if (selectedSetup) {
-                                  if (selectedSetup.allowedFrequencies && selectedSetup.allowedFrequencies.length > 0) {
-                                    setFrequency(selectedSetup.allowedFrequencies[0].frequency);
-                                  }
-                                  // Set default amount to 1 USDC (not the minimum)
-                                  setAmountPerDca('1.00');
-                                }
-                              }}
-                              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[hsl(var(--gray-300)/0.1)] ${
-                                isSelected ? 'bg-[hsl(var(--sky-300)/0.2)]' : ''
-                              }`}
-                            >
-                              {tokenIcon && (
-                                <Image
-                                  src={tokenIcon}
-                                  alt={t.ticker}
-                                  width={20}
-                                  height={20}
-                                  className='flex-shrink-0'
-                                  onError={(e) => {
-                                    // Hide the image on error (especially for WEGLD)
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                  }}
-                                />
-                              )}
-                              <span className='flex-1'>
-                                {isSelected && <span className='text-[hsl(var(--sky-300))]'>✓ </span>}
-                                {t.ticker}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className='grid gap-4 md:grid-cols-2'>
-              <div className='flex flex-col gap-1'>
-                <div className='flex items-center gap-1'>
-                  <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
-                    Frequency
-                  </label>
-                  <button
-                    type='button'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowFrequencyInfo(!showFrequencyInfo);
-                    }}
-                    className='relative flex items-center justify-center h-4 w-4 text-[hsl(var(--gray-300)/0.6)] hover:text-[hsl(var(--sky-300))] transition-colors'
-                    title='DCAi LLM Information'
-                  >
-                    <span className='text-xs'>ℹ</span>
-                    {showFrequencyInfo && (
-                      <>
-                        <div
-                          className='fixed inset-0 z-40'
-                          onClick={() => setShowFrequencyInfo(false)}
-                        />
-                        <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 text-xs bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.2)] shadow-lg z-50 rounded'>
-                          <p className='text-[hsl(var(--gray-300)/0.9)]'>
-                            DCAi LLM works only with <strong>Daily</strong> or <strong>Weekly</strong> frequency. These frequencies are marked with &quot;(DCAi Activated)&quot; in the dropdown.
-                          </p>
-                          <div className='absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-[hsl(var(--background))] border-r border-b border-[hsl(var(--gray-300)/0.2)] rotate-45'></div>
-                        </div>
-                      </>
-                    )}
-                  </button>
-                </div>
-                {loadingSetup ? (
-                  <div className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm flex items-center text-[hsl(var(--gray-300)/0.6)]'>
-                    Loading frequencies...
-                  </div>
-                ) : (() => {
-                  // Find the setup for the selected token
-                  const selectedSetup = setups?.find(s => s.dcaToken === token) || setup;
-                  const frequencies = selectedSetup && selectedSetup.allowedFrequencies && selectedSetup.allowedFrequencies.length > 0
-                    ? selectedSetup.allowedFrequencies.map(freq => freq.frequency)
-                    : ['hourly', 'daily', 'weekly', 'monthly'];
-                  
-                  // Get display name for frequency
-                  const getFrequencyDisplayName = (freq: string) => {
-                    const freqName = freq.toLowerCase();
-                    if (freqName === 'daily' || freqName === 'weekly') {
-                      return `${freq} (DCAi Activated)`;
-                    }
-                    // Capitalize first letter
-                    return freq.charAt(0).toUpperCase() + freq.slice(1);
-                  };
-                  
-                  // Get current frequency display name
-                  const currentFrequencyDisplay = frequency ? getFrequencyDisplayName(frequency) : 'Select frequency';
-                  
-                  return (
-                    <div className='relative'>
-                      <button
-                        type='button'
-                        onClick={() => setIsFrequencyDropdownOpen(!isFrequencyDropdownOpen)}
-                        className='flex h-9 w-full items-center gap-2 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-left text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
-                      >
-                        <span className='flex-1'>{currentFrequencyDisplay}</span>
-                        <span className='text-[hsl(var(--gray-300)/0.6)]'>▼</span>
-                      </button>
-                      
-                      {isFrequencyDropdownOpen && (
-                        <>
-                          <div
-                            className='fixed inset-0 z-10'
-                            onClick={() => setIsFrequencyDropdownOpen(false)}
-                          />
-                          <div className='absolute z-20 mt-1 max-h-60 w-full overflow-auto border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] shadow-lg'>
-                            {frequencies.map((freq) => {
-                              const isSelected = frequency === freq;
-                              const displayName = getFrequencyDisplayName(freq);
-                              return (
-                                <button
-                                  key={freq}
-                                  type='button'
-                                  onClick={() => {
-                                    setFrequency(freq);
-                                    setIsFrequencyDropdownOpen(false);
-                                  }}
-                                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[hsl(var(--gray-300)/0.1)] ${
-                                    isSelected ? 'bg-[hsl(var(--sky-300)/0.2)]' : ''
-                                  }`}
-                                >
-                                  <span className='flex-1'>
-                                    {isSelected && <span className='text-[hsl(var(--sky-300))]'>✓ </span>}
-                                    {displayName}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-
-              <div className='flex flex-col gap-1'>
-                <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
-                  USDC per DCA
-                  {(() => {
-                    const selectedSetup = setups?.find(s => s.dcaToken === token) || setup;
-                    return selectedSetup && (
-                      <span className='text-[hsl(var(--gray-300)/0.6)] ml-1'>
-                        (Min: {parseFloat(selectedSetup.minAmountPerSwap).toFixed(2)} USDC)
-                      </span>
-                    );
-                  })()}
-                </label>
-                <input
-                  type='number'
-                  min={(() => {
-                    const selectedSetup = setups?.find(s => s.dcaToken === token) || setup;
-                    return selectedSetup ? parseFloat(selectedSetup.minAmountPerSwap).toFixed(2) : '0';
-                  })()}
-                  step='0.01'
-                  value={amountPerDca}
-                  onChange={(e) => setAmountPerDca(e.target.value)}
-                  className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
-                  placeholder={(() => {
-                    const selectedSetup = setups?.find(s => s.dcaToken === token) || setup;
-                    return selectedSetup ? parseFloat(selectedSetup.minAmountPerSwap).toFixed(2) : '50';
-                  })()}
-                />
-              </div>
-            </div>
-
-            <div className='flex flex-col gap-2'>
-              <button
-                type='button'
-                onClick={() => setShowTakeProfit(!showTakeProfit)}
-                className='flex items-center justify-between border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] p-3 text-left text-sm transition-colors hover:border-[hsl(var(--sky-300)/0.3)]'
-              >
-                <span className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
-                  Take-profit % (Optional)
-                </span>
-                <span className='text-[hsl(var(--sky-300))]'>
-                  {showTakeProfit ? '−' : '+'}
-                </span>
-              </button>
-              
-              {showTakeProfit && (
-                <div className='flex flex-col gap-1 border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-3'>
-                  <input
-                    type='number'
-                    min='0'
-                    step='0.1'
-                    value={takeProfitPct}
-                    onChange={(e) => setTakeProfitPct(e.target.value)}
-                    className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
-                    placeholder='15'
-                  />
-                  <p className='text-[11px] text-[hsl(var(--gray-300)/0.7)]'>
-                    For every DCA leg, DCAi will try to lock profit once price
-                    moves up by this percentage.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className='mt-2 flex justify-end'>
-              <button
-                type='submit'
-                disabled={isCreatingStrategy}
-                className='inline-flex items-center justify-center bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
-              >
-                {isCreatingStrategy ? 'Creating...' : 'Create Strategy'}
-              </button>
-            </div>
-          </form>
+          <CreateStrategyForm
+            tokens={tokens}
+            token={token}
+            onTokenChange={setToken}
+            frequency={frequency}
+            onFrequencyChange={setFrequency}
+            amountPerDca={amountPerDca}
+            onAmountPerDcaChange={setAmountPerDca}
+            showTakeProfit={showTakeProfit}
+            onShowTakeProfitChange={setShowTakeProfit}
+            takeProfitPct={takeProfitPct}
+            onTakeProfitPctChange={setTakeProfitPct}
+            setup={setup}
+            setups={setups}
+            loadingSetup={loadingSetup}
+            loadingTokens={loadingTokens}
+            setupError={setupError}
+            isCreatingStrategy={isCreatingStrategy}
+            onSubmit={handleAddStrategy}
+            network={network}
+          />
 
           <div className='flex flex-col gap-3'>
             <h2 className='text-sm font-semibold tracking-tight'>
               Active strategies
             </h2>
-            {strategies.length === 0 ? (
-              <p className='text-sm text-[hsl(var(--gray-300)/0.7)]'>
-                No strategies yet. Create your first DCA plan on the left.
-              </p>
-            ) : (
-              <div className='flex flex-col gap-2'>
-                {(() => {
-                  // Group strategies by token
-                  const groupedStrategies = strategies.reduce((acc, strategy) => {
-                    const token = strategy.token;
-                    if (!acc[token]) {
-                      acc[token] = [];
-                    }
-                    acc[token].push(strategy);
-                    return acc;
-                  }, {} as Record<string, typeof strategies>);
-
-                  return Object.entries(groupedStrategies).map(([token, tokenStrategies]) => {
-                    const groupKey = token;
-                    const isExpanded = expandedGroups.has(groupKey);
-                    const currentIndex = strategyIndices[groupKey] || 0;
-                    const currentStrategy = tokenStrategies[currentIndex];
-                    // Use first strategy for header image (always available)
-                    const headerStrategy = tokenStrategies[0];
-
-                    return (
-                      <div
-                        key={groupKey}
-                        className='border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))]'
-                      >
-                        {/* Collapsed header */}
-                        <button
-                          type='button'
-                          onClick={() => {
-                            const newExpanded = new Set(expandedGroups);
-                            if (isExpanded) {
-                              newExpanded.delete(groupKey);
-                            } else {
-                              newExpanded.add(groupKey);
-                              // Initialize index if not set
-                              if (strategyIndices[groupKey] === undefined) {
-                                setStrategyIndices(prev => ({ ...prev, [groupKey]: 0 }));
-                              }
-                            }
-                            setExpandedGroups(newExpanded);
-                          }}
-                          className='w-full flex items-center justify-between p-4 text-left hover:bg-[hsl(var(--gray-300)/0.05)] transition-colors'
-                        >
-                          <div className='flex items-center gap-2'>
-                            {headerStrategy?.tokenLogo ? (
-                              <Image
-                                src={headerStrategy.tokenLogo}
-                                alt={token}
-                                width={24}
-                                height={24}
-                                className='rounded-full'
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
-                              />
-                            ) : null}
-                            <div className='flex flex-col'>
-                              <span className='font-medium text-sm'>
-                                {token} DCA
-                              </span>
-                              <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                                {tokenStrategies.length} {tokenStrategies.length === 1 ? 'strategy' : 'strategies'}
-                              </span>
-                            </div>
-                          </div>
-                          <span className='text-[hsl(var(--gray-300)/0.7)]'>
-                            {isExpanded ? '▼' : '▶'}
-                          </span>
-                        </button>
-
-                        {/* Expanded content with slider */}
-                        {isExpanded && currentStrategy && (
-                          <div className='border-t border-[hsl(var(--gray-300)/0.2)] p-4'>
-                            {/* Slider navigation */}
-                            {tokenStrategies.length > 1 && (
-                              <div className='flex items-center justify-between mb-4'>
-                                <button
-                                  type='button'
-                                  onClick={() => {
-                                    const newIndex = currentIndex > 0 ? currentIndex - 1 : tokenStrategies.length - 1;
-                                    setStrategyIndices(prev => ({ ...prev, [groupKey]: newIndex }));
-                                  }}
-                                  className='flex items-center justify-center h-8 w-8 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:text-[hsl(var(--sky-300))]'
-                                  disabled={tokenStrategies.length <= 1}
-                                >
-                                  ←
-                                </button>
-                                <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                                  {currentIndex + 1} / {tokenStrategies.length}
-                                </span>
-                                <button
-                                  type='button'
-                                  onClick={() => {
-                                    const newIndex = currentIndex < tokenStrategies.length - 1 ? currentIndex + 1 : 0;
-                                    setStrategyIndices(prev => ({ ...prev, [groupKey]: newIndex }));
-                                  }}
-                                  className='flex items-center justify-center h-8 w-8 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:text-[hsl(var(--sky-300))]'
-                                  disabled={tokenStrategies.length <= 1}
-                                >
-                                  →
-                                </button>
-                              </div>
-                            )}
-
-                            {/* Strategy card */}
-                            <div className='flex flex-col gap-3 text-sm'>
-                              <div className='flex items-center justify-between'>
-                                <div className='flex items-center gap-2'>
-                                  {currentStrategy.tokenLogo && (
-                                    <Image
-                                      src={currentStrategy.tokenLogo}
-                                      alt={currentStrategy.token}
-                                      width={24}
-                                      height={24}
-                                      className='rounded-full'
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.style.display = 'none';
-                                      }}
-                                    />
-                                  )}
-                                  <div className='flex flex-col'>
-                                    <span className='font-medium'>
-                                      {currentStrategy.token} DCA
-                                    </span>
-                                    <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                                      {currentStrategy.frequency} • $
-                                      {currentStrategy.amountPerDca.toFixed(2)} USDC per run
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className='flex items-center gap-2'>
-                                  <button
-                                    type='button'
-                                    onClick={() => handleModifyStrategy(currentStrategy.id)}
-                                    className='inline-flex items-center px-3 py-1 text-xs font-medium transition-colors border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-foreground hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
-                                  >
-                                    Modify Strategy
-                                  </button>
-                                  <button
-                                    type='button'
-                                    onClick={() => handleDeleteStrategy(currentStrategy.id)}
-                                    className='inline-flex items-center justify-center h-6 w-6 border border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] transition-colors hover:border-red-500/50 hover:text-red-500 hover:bg-red-500/10'
-                                    title='Delete strategy'
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              </div>
-                              
-                              <div className='flex flex-col gap-2 border-t border-[hsl(var(--gray-300)/0.2)] pt-3'>
-                                <div className='flex items-center justify-between text-xs'>
-                                  <span className='text-[hsl(var(--gray-300)/0.7)]'>Available USDC</span>
-                                  <span className='font-medium'>${currentStrategy.availableUsdc.toFixed(2)}</span>
-                                </div>
-                                <div className='flex items-center justify-between text-xs'>
-                                  <span className='text-[hsl(var(--gray-300)/0.7)]'>
-                                    Available {currentStrategy.token}
-                                  </span>
-                                  <span className='font-medium'>
-                                    {currentStrategy.tokenBalance.toFixed(2)} {currentStrategy.token}
-                                  </span>
-                                </div>
-                                
-                                {currentStrategy.takeProfitPct !== undefined && (
-                                  <div className='flex items-center justify-between text-xs'>
-                                    <span className='text-[hsl(var(--gray-300)/0.7)]'>Take-profit</span>
-                                    <span className='font-medium'>{currentStrategy.takeProfitPct.toFixed(1)}%</span>
-                                  </div>
-                                )}
-                                
-                                {currentStrategy.lastExecutedTsMillis && parseFloat(currentStrategy.lastExecutedTsMillis) > 0 && (
-                                  <div className='flex items-center justify-between text-xs'>
-                                    <span className='text-[hsl(var(--gray-300)/0.7)]'>Last DCA</span>
-                                    <span className='font-medium'>
-                                      {(() => {
-                                        const timestamp = parseFloat(currentStrategy.lastExecutedTsMillis);
-                                        const date = new Date(timestamp);
-                                        const now = new Date();
-                                        const diffMs = now.getTime() - date.getTime();
-                                        const diffMins = Math.floor(diffMs / 60000);
-                                        const diffHours = Math.floor(diffMs / 3600000);
-                                        const diffDays = Math.floor(diffMs / 86400000);
-                                        
-                                        if (diffMins < 1) {
-                                          return 'Just now';
-                                        } else if (diffMins < 60) {
-                                          return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
-                                        } else if (diffHours < 24) {
-                                          return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
-                                        } else if (diffDays < 7) {
-                                          return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
-                                        } else {
-                                          return date.toLocaleDateString('en-US', { 
-                                            month: 'short', 
-                                            day: 'numeric',
-                                            year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-                                          });
-                                        }
-                                      })()}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className='flex flex-wrap gap-2'>
-                                <button
-                                  type='button'
-                                  onClick={() => handleDeposit(currentStrategy.id)}
-                                  className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
-                                >
-                                  Deposit
-                                </button>
-                                <button
-                                  type='button'
-                                  onClick={() => handleWithdraw(currentStrategy.id, 'usdc')}
-                                  disabled={currentStrategy.availableUsdc === 0}
-                                  className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
-                                >
-                                  Withdraw USDC
-                                </button>
-                                <button
-                                  type='button'
-                                  onClick={() => handleWithdraw(currentStrategy.id, 'token')}
-                                  disabled={currentStrategy.tokenBalance === 0}
-                                  className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
-                                >
-                                  Withdraw {currentStrategy.token}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className='relative mt-8 border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-6 shadow-sm'>
-          <div className='pointer-events-none absolute top-0 right-8 z-10 -translate-y-1/2'>
-            <Image
-              src='/assets/img/slothyoga.png'
-              alt='DCAi sloth yoga'
-              width={180}
-              height={180}
-              className='object-contain w-[90px] h-[90px] md:w-[180px] md:h-[180px]'
+            <ActiveStrategiesList
+              strategies={strategies}
+              expandedGroups={expandedGroups}
+              strategyIndices={strategyIndices}
+              onToggleGroup={(groupKey) => {
+                const newExpanded = new Set(expandedGroups);
+                if (newExpanded.has(groupKey)) {
+                  newExpanded.delete(groupKey);
+                } else {
+                  newExpanded.add(groupKey);
+                  if (strategyIndices[groupKey] === undefined) {
+                    setStrategyIndices(prev => ({ ...prev, [groupKey]: 0 }));
+                  }
+                }
+                setExpandedGroups(newExpanded);
+              }}
+              onSetStrategyIndex={(groupKey, index) => {
+                setStrategyIndices(prev => ({ ...prev, [groupKey]: index }));
+              }}
+              onModifyStrategy={handleModifyStrategy}
+              onDeleteStrategy={handleDeleteStrategy}
+              onDeposit={handleDeposit}
+              onWithdraw={handleWithdraw}
             />
           </div>
-
-          <h2 className='mb-4 text-sm font-semibold tracking-tight'>
-            Latest DCAi Activity
-          </h2>
-          <div className='flex flex-col gap-3'>
-            {activities.length === 0 ? (
-              <p className='text-sm text-[hsl(var(--gray-300)/0.7)]'>
-                No activity yet. Your DCAi transactions will appear here.
-              </p>
-            ) : (
-              <>
-                {/* Calculate pagination */}
-                {(() => {
-                  const totalPages = Math.ceil(activities.length / itemsPerPage);
-                  const startIndex = (currentActivityPage - 1) * itemsPerPage;
-                  const endIndex = startIndex + itemsPerPage;
-                  const currentActivities = activities.slice(startIndex, endIndex);
-
-                  // Format timestamp to human-readable
-                  const formatTimeAgo = (timestamp: number) => {
-                    const now = Date.now();
-                    const diffMs = now - timestamp;
-                    const diffMins = Math.floor(diffMs / 60000);
-                    const diffHours = Math.floor(diffMs / 3600000);
-                    const diffDays = Math.floor(diffMs / 86400000);
-                    
-                    if (diffMins < 1) {
-                      return 'Just now';
-                    } else if (diffMins < 60) {
-                      return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
-                    } else if (diffHours < 24) {
-                      return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
-                    } else if (diffDays < 7) {
-                      return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
-                    } else {
-                      const date = new Date(timestamp);
-                      return date.toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric',
-                        year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
-                      });
-                    }
-                  };
-
-                  return (
-                    <>
-                      {/* Activity items */}
-                      <div className='flex flex-col gap-3'>
-                        {currentActivities.map((activity, index) => {
-                          const isLast = index === currentActivities.length - 1;
-
-                          return (
-                            <div
-                              key={`${activity.type}-${activity.timestamp}-${startIndex + index}`}
-                              className={`flex items-center gap-3 ${!isLast ? 'border-b border-[hsl(var(--gray-300)/0.1)] pb-3' : ''} text-sm`}
-                            >
-                              <div className='flex h-8 w-8 items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.9)]'>
-                                <span className='text-xs'>{activity.icon}</span>
-                              </div>
-                              <div className='flex-1'>
-                                <p className='font-medium'>{activity.title}</p>
-                                <p className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                                  {activity.description} • {formatTimeAgo(activity.timestamp)}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Pagination controls */}
-                      {totalPages > 1 && (
-                        <div className='flex items-center justify-between pt-3 border-t border-[hsl(var(--gray-300)/0.1)]'>
-                          <button
-                            type='button'
-                            onClick={() => setCurrentActivityPage(prev => Math.max(1, prev - 1))}
-                            disabled={currentActivityPage === 1}
-                            className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
-                          >
-                            Previous
-                          </button>
-                          <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                            Page {currentActivityPage} of {totalPages}
-                          </span>
-                          <button
-                            type='button'
-                            onClick={() => setCurrentActivityPage(prev => Math.min(totalPages, prev + 1))}
-                            disabled={currentActivityPage === totalPages}
-                            className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
-                          >
-                            Next
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </>
-            )}
-          </div>
         </section>
+
+        <ActivityFeed
+          activities={activities}
+          currentPage={currentActivityPage}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentActivityPage}
+        />
       </div>
 
-      {/* Withdraw Modal */}
-      {withdrawModal.isOpen && withdrawModal.strategyId && withdrawModal.asset && (() => {
-        const strategy = strategies.find(s => s.id === withdrawModal.strategyId);
-        if (!strategy) return null;
+      <WithdrawModal
+        isOpen={withdrawModal.isOpen}
+        strategy={strategies.find(s => s.id === withdrawModal.strategyId) || null}
+        asset={withdrawModal.asset}
+        amount={withdrawModal.amount}
+        onAmountChange={(amount) => setWithdrawModal({ ...withdrawModal, amount })}
+        onSubmit={handleWithdrawSubmit}
+        onCancel={handleWithdrawCancel}
+      />
 
-        const amount = parseFloat(withdrawModal.amount);
-        const isValid = !isNaN(amount) && amount > 0;
-        
-        // Get the balance for the selected asset
-        const balance = withdrawModal.asset === 'usdc' ? strategy.availableUsdc : strategy.tokenBalance;
-        const assetName = withdrawModal.asset === 'usdc' ? 'USDC' : strategy.token;
-        const maxAmount = balance;
-        const isValidAmount = isValid && amount <= maxAmount;
+      <DepositModal
+        isOpen={depositModal.isOpen}
+        strategy={strategies.find(s => s.id === depositModal.strategyId) || null}
+        amount={depositModal.amount}
+        usdcWalletBalance={usdcWalletBalance}
+        onAmountChange={(amount) => setDepositModal({ ...depositModal, amount })}
+        onSubmit={handleDepositSubmit}
+        onCancel={handleDepositCancel}
+      />
 
-        return (
-          <div
-            className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'
-            onClick={handleWithdrawCancel}
-          >
-            <div
-              className='border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] p-6 shadow-lg w-full max-w-md mx-4'
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className='text-sm font-semibold tracking-tight mb-1'>
-                Withdraw {assetName}
-              </h2>
-              <p className='text-xs text-[hsl(var(--gray-300)/0.7)] mb-4'>
-                Enter {assetName} amount to withdraw from {strategy.token} DCA strategy
-              </p>
+      <ModifyStrategyModal
+        isOpen={modifyModal.isOpen}
+        strategy={strategies.find(s => s.id === modifyModal.strategyId) || null}
+        setups={setups}
+        amountPerDca={modifyModal.amountPerDca}
+        frequency={modifyModal.frequency}
+        takeProfitPct={modifyModal.takeProfitPct}
+        showTakeProfit={modifyModal.showTakeProfit}
+        onAmountPerDcaChange={(amount) => setModifyModal({ ...modifyModal, amountPerDca: amount })}
+        onFrequencyChange={(frequency) => setModifyModal({ ...modifyModal, frequency })}
+        onTakeProfitPctChange={(pct) => setModifyModal({ ...modifyModal, takeProfitPct: pct })}
+        onShowTakeProfitChange={(show) => setModifyModal({ ...modifyModal, showTakeProfit: show })}
+        onSubmit={handleModifyStrategySubmit}
+        onCancel={handleModifyStrategyCancel}
+      />
 
-              <div className='flex flex-col gap-2 mb-4'>
-                <div className='flex items-center justify-between text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                  <span>Available balance:</span>
-                  <span className='font-medium'>{balance.toFixed(2)} {assetName}</span>
-                </div>
-                <input
-                  type='number'
-                  min='0'
-                  step='0.01'
-                  max={maxAmount.toFixed(2)}
-                  value={withdrawModal.amount}
-                  onChange={(e) => setWithdrawModal({ ...withdrawModal, amount: e.target.value })}
-                  className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
-                  placeholder='0.00'
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && isValidAmount) {
-                      handleWithdrawSubmit();
-                    } else if (e.key === 'Escape') {
-                      handleWithdrawCancel();
-                    }
-                  }}
-                />
-                {withdrawModal.amount && !isValidAmount && (
-                  <p className='text-xs text-red-500'>
-                    {!isValid 
-                      ? 'Please enter a valid amount greater than 0'
-                      : `Amount cannot exceed available balance of ${maxAmount.toFixed(2)} ${assetName}`
-                    }
-                  </p>
-                )}
-              </div>
-
-              <div className='flex gap-3 justify-end'>
-                <button
-                  type='button'
-                  onClick={handleWithdrawCancel}
-                  className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
-                >
-                  Cancel
-                </button>
-                <button
-                  type='button'
-                  onClick={handleWithdrawSubmit}
-                  disabled={!isValidAmount}
-                  className='inline-flex items-center justify-center bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
-                >
-                  Withdraw
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Deposit Modal */}
-      {depositModal.isOpen && depositModal.strategyId && (() => {
-        const strategy = strategies.find(s => s.id === depositModal.strategyId);
-        if (!strategy) return null;
-
-        const amount = parseFloat(depositModal.amount);
-        const isValid = !isNaN(amount) && amount > 0;
-
-        return (
-          <div
-            className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'
-            onClick={handleDepositCancel}
-          >
-            <div
-              className='border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] p-6 shadow-lg w-full max-w-md mx-4'
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className='text-sm font-semibold tracking-tight mb-1'>
-                Deposit USDC
-              </h2>
-              <p className='text-xs text-[hsl(var(--gray-300)/0.7)] mb-4'>
-                Enter USDC amount to deposit for {strategy.token} DCA strategy
-              </p>
-
-              <div className='flex flex-col gap-2 mb-4'>
-                <div className='flex items-center justify-between text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                  <span>Wallet balance:</span>
-                  <span className='font-medium'>{usdcWalletBalance.toFixed(2)} USDC</span>
-                </div>
-              </div>
-
-              <div className='flex flex-col gap-2 mb-6'>
-                <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
-                  Amount (USDC)
-                </label>
-                <input
-                  type='number'
-                  min='0'
-                  step='0.01'
-                  value={depositModal.amount}
-                  onChange={(e) => setDepositModal({ ...depositModal, amount: e.target.value })}
-                  className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
-                  placeholder='0.00'
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && isValid) {
-                      handleDepositSubmit();
-                    } else if (e.key === 'Escape') {
-                      handleDepositCancel();
-                    }
-                  }}
-                />
-                {depositModal.amount && !isValid && (
-                  <p className='text-xs text-red-500'>
-                    Please enter a valid amount greater than 0
-                  </p>
-                )}
-              </div>
-
-              <div className='flex gap-3 justify-end'>
-                <button
-                  type='button'
-                  onClick={handleDepositCancel}
-                  className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
-                >
-                  Cancel
-                </button>
-                <button
-                  type='button'
-                  onClick={handleDepositSubmit}
-                  disabled={!isValid}
-                  className='inline-flex items-center justify-center bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
-                >
-                  Deposit
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Modify Strategy Modal */}
-      {modifyModal.isOpen && modifyModal.strategyId && (() => {
-        const strategy = strategies.find(s => s.id === modifyModal.strategyId);
-        if (!strategy) return null;
-
-        // Find the setup for this strategy's token to get allowed frequencies
-        const strategySetup = setups?.find(s => {
-          const setupTicker = s.dcaToken.split('-')[0];
-          return setupTicker === strategy.token;
-        });
-
-        const amountPerDca = parseFloat(modifyModal.amountPerDca);
-        const isValidAmount = !isNaN(amountPerDca) && amountPerDca > 0;
-        
-        // Get minimum amount from setup
-        const minAmount = strategySetup ? parseFloat(strategySetup.minAmountPerSwap) : 0;
-        const isValidAmountWithMin = isValidAmount && amountPerDca >= minAmount;
-
-        const takeProfitPct = modifyModal.showTakeProfit && modifyModal.takeProfitPct 
-          ? parseFloat(modifyModal.takeProfitPct) 
-          : 0;
-        const isValidTakeProfit = !modifyModal.showTakeProfit || (takeProfitPct >= 0 && takeProfitPct <= 100);
-
-        const isValid = isValidAmountWithMin && isValidTakeProfit && modifyModal.frequency;
-
-        return (
-          <div
-            className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'
-            onClick={handleModifyStrategyCancel}
-          >
-            <div
-              className='border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] p-6 shadow-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto'
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className='text-sm font-semibold tracking-tight mb-1'>
-                Modify Strategy
-              </h2>
-              <p className='text-xs text-[hsl(var(--gray-300)/0.7)] mb-4'>
-                Update your {strategy.token} DCA strategy settings
-              </p>
-
-              <div className='flex flex-col gap-4'>
-                {/* Frequency */}
-                <div className='flex flex-col gap-1'>
-                  <div className='flex items-center gap-1'>
-                    <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
-                      Frequency
-                    </label>
-                    <button
-                      type='button'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowFrequencyInfo(!showFrequencyInfo);
-                      }}
-                      className='relative flex items-center justify-center h-4 w-4 text-[hsl(var(--gray-300)/0.6)] hover:text-[hsl(var(--sky-300))] transition-colors'
-                      title='DCAi LLM Information'
-                    >
-                      <span className='text-xs'>ℹ</span>
-                      {showFrequencyInfo && (
-                        <>
-                          <div
-                            className='fixed inset-0 z-40'
-                            onClick={() => setShowFrequencyInfo(false)}
-                          />
-                          <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 text-xs bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.2)] shadow-lg z-50 rounded'>
-                            <p className='text-[hsl(var(--gray-300)/0.9)]'>
-                              DCAi LLM works only with <strong>Daily</strong> or <strong>Weekly</strong> frequency. These frequencies are marked with &quot;(DCAi Activated)&quot; in the dropdown.
-                            </p>
-                            <div className='absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-[hsl(var(--background))] border-r border-b border-[hsl(var(--gray-300)/0.2)] rotate-45'></div>
-                          </div>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  {(() => {
-                    const frequencies = strategySetup && strategySetup.allowedFrequencies && strategySetup.allowedFrequencies.length > 0
-                      ? strategySetup.allowedFrequencies.map(freq => freq.frequency)
-                      : ['hourly', 'daily', 'weekly', 'monthly'];
-                    
-                    // Get display name for frequency
-                    const getFrequencyDisplayName = (freq: string) => {
-                      const freqName = freq.toLowerCase();
-                      if (freqName === 'daily' || freqName === 'weekly') {
-                        return `${freq} (DCAi Activated)`;
-                      }
-                      // Capitalize first letter
-                      return freq.charAt(0).toUpperCase() + freq.slice(1);
-                    };
-                    
-                    // Get current frequency display name
-                    const currentFrequencyDisplay = modifyModal.frequency ? getFrequencyDisplayName(modifyModal.frequency) : 'Select frequency';
-                    
-                    return (
-                      <div className='relative'>
-                        <button
-                          type='button'
-                          onClick={() => setIsModifyFrequencyDropdownOpen(!isModifyFrequencyDropdownOpen)}
-                          className='flex h-9 w-full items-center gap-2 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-left text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
-                        >
-                          <span className='flex-1'>{currentFrequencyDisplay}</span>
-                          <span className='text-[hsl(var(--gray-300)/0.6)]'>▼</span>
-                        </button>
-                        
-                        {isModifyFrequencyDropdownOpen && (
-                          <>
-                            <div
-                              className='fixed inset-0 z-40'
-                              onClick={() => setIsModifyFrequencyDropdownOpen(false)}
-                            />
-                            <div className='absolute z-50 mt-1 max-h-60 w-full overflow-auto border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] shadow-lg'>
-                              {frequencies.map((freq) => {
-                                const isSelected = modifyModal.frequency === freq;
-                                const displayName = getFrequencyDisplayName(freq);
-                                return (
-                                  <button
-                                    key={freq}
-                                    type='button'
-                                    onClick={() => {
-                                      setModifyModal({ ...modifyModal, frequency: freq });
-                                      setIsModifyFrequencyDropdownOpen(false);
-                                    }}
-                                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[hsl(var(--gray-300)/0.1)] ${
-                                      isSelected ? 'bg-[hsl(var(--sky-300)/0.2)]' : ''
-                                    }`}
-                                  >
-                                    <span className='flex-1'>
-                                      {isSelected && <span className='text-[hsl(var(--sky-300))]'>✓ </span>}
-                                      {displayName}
-                                    </span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                {/* Amount per DCA */}
-                <div className='flex flex-col gap-1'>
-                  <label className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
-                    USDC per DCA
-                    {minAmount > 0 && (
-                      <span className='text-[hsl(var(--gray-300)/0.6)] ml-1'>
-                        (Min: {minAmount.toFixed(2)} USDC)
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    type='number'
-                    min={minAmount.toFixed(2)}
-                    step='0.01'
-                    value={modifyModal.amountPerDca}
-                    onChange={(e) => setModifyModal({ ...modifyModal, amountPerDca: e.target.value })}
-                    className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
-                    placeholder='0.00'
-                  />
-                  {modifyModal.amountPerDca && !isValidAmountWithMin && (
-                    <p className='text-xs text-red-500'>
-                      {!isValidAmount 
-                        ? 'Please enter a valid amount greater than 0'
-                        : `Amount must be at least ${minAmount.toFixed(2)} USDC`
-                      }
-                    </p>
-                  )}
-                </div>
-
-                {/* Take Profit */}
-                <div className='flex flex-col gap-2'>
-                  <button
-                    type='button'
-                    onClick={() => setModifyModal({ ...modifyModal, showTakeProfit: !modifyModal.showTakeProfit })}
-                    className='flex items-center justify-between border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] p-3 text-left text-sm transition-colors hover:border-[hsl(var(--sky-300)/0.3)]'
-                  >
-                    <span className='text-xs font-medium text-[hsl(var(--gray-300)/0.8)]'>
-                      Take-profit % (Optional)
-                    </span>
-                    <span className='text-[hsl(var(--sky-300))]'>
-                      {modifyModal.showTakeProfit ? '−' : '+'}
-                    </span>
-                  </button>
-                  
-                  {modifyModal.showTakeProfit && (
-                    <div className='flex flex-col gap-1 border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-3'>
-                      <input
-                        type='number'
-                        min='0'
-                        max='100'
-                        step='0.1'
-                        value={modifyModal.takeProfitPct}
-                        onChange={(e) => setModifyModal({ ...modifyModal, takeProfitPct: e.target.value })}
-                        className='h-9 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-2 text-sm outline-none focus-visible:border-[hsl(var(--sky-300)/0.5)] focus-visible:ring-1 focus-visible:ring-[hsl(var(--sky-300)/0.3)]'
-                        placeholder='15'
-                      />
-                      {modifyModal.takeProfitPct && !isValidTakeProfit && (
-                        <p className='text-xs text-red-500'>
-                          Take profit must be between 0 and 100
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className='flex gap-3 justify-end mt-6'>
-                <button
-                  type='button'
-                  onClick={handleModifyStrategyCancel}
-                  className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
-                >
-                  Cancel
-                </button>
-                <button
-                  type='button'
-                  onClick={handleModifyStrategySubmit}
-                  disabled={!isValid}
-                  className='inline-flex items-center justify-center bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
-                >
-                  Modify Strategy
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Delete Confirmation Modal */}
-      {deleteModal.isOpen && deleteModal.strategyId && (() => {
-        const strategy = strategies.find(s => s.id === deleteModal.strategyId);
-        if (!strategy) return null;
-
-        return (
-          <div
-            className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'
-            onClick={handleDeleteCancel}
-          >
-            <div
-              className='border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] p-6 shadow-lg w-full max-w-md mx-4'
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className='text-sm font-semibold tracking-tight mb-1'>
-                Delete Strategy
-              </h2>
-              <p className='text-xs text-[hsl(var(--gray-300)/0.7)] mb-4'>
-                Are you sure you want to delete your {strategy.token} DCA strategy? This action cannot be undone.
-              </p>
-
-              <div className='flex gap-3 justify-end'>
-                <button
-                  type='button'
-                  onClick={handleDeleteCancel}
-                  className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
-                >
-                  Cancel
-                </button>
-                <button
-                  type='button'
-                  onClick={handleDeleteConfirm}
-                  className='inline-flex items-center justify-center bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700'
-                >
-                  Delete Strategy
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        strategy={strategies.find(s => s.id === deleteModal.strategyId) || null}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
     </div>
   );
 };

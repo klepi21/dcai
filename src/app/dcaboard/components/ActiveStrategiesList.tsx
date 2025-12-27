@@ -1,0 +1,240 @@
+'use client';
+import Image from 'next/image';
+import { DcaStrategy } from '../types';
+import { formatLastDca } from '../utils/formatTime';
+
+interface ActiveStrategiesListProps {
+  strategies: DcaStrategy[];
+  expandedGroups: Set<string>;
+  strategyIndices: Record<string, number>;
+  onToggleGroup: (groupKey: string) => void;
+  onSetStrategyIndex: (groupKey: string, index: number) => void;
+  onModifyStrategy: (strategyId: string) => void;
+  onDeleteStrategy: (strategyId: string) => void;
+  onDeposit: (strategyId: string) => void;
+  onWithdraw: (strategyId: string, asset: 'usdc' | 'token') => void;
+}
+
+export function ActiveStrategiesList({
+  strategies,
+  expandedGroups,
+  strategyIndices,
+  onToggleGroup,
+  onSetStrategyIndex,
+  onModifyStrategy,
+  onDeleteStrategy,
+  onDeposit,
+  onWithdraw
+}: ActiveStrategiesListProps) {
+  if (strategies.length === 0) {
+    return (
+      <p className='text-sm text-[hsl(var(--gray-300)/0.7)]'>
+        No strategies yet. Create your first DCA plan on the left.
+      </p>
+    );
+  }
+
+  // Group strategies by token
+  const groupedStrategies = strategies.reduce((acc, strategy) => {
+    const token = strategy.token;
+    if (!acc[token]) {
+      acc[token] = [];
+    }
+    acc[token].push(strategy);
+    return acc;
+  }, {} as Record<string, typeof strategies>);
+
+  return (
+    <div className='flex flex-col gap-2'>
+      {Object.entries(groupedStrategies).map(([token, tokenStrategies]) => {
+        const groupKey = token;
+        const isExpanded = expandedGroups.has(groupKey);
+        const currentIndex = strategyIndices[groupKey] || 0;
+        const currentStrategy = tokenStrategies[currentIndex];
+        const headerStrategy = tokenStrategies[0];
+
+        return (
+          <div
+            key={groupKey}
+            className='border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))]'
+          >
+            {/* Collapsed header */}
+            <button
+              type='button'
+              onClick={() => onToggleGroup(groupKey)}
+              className='w-full flex items-center justify-between p-4 text-left hover:bg-[hsl(var(--gray-300)/0.05)] transition-colors'
+            >
+              <div className='flex items-center gap-2'>
+                {headerStrategy?.tokenLogo ? (
+                  <Image
+                    src={headerStrategy.tokenLogo}
+                    alt={token}
+                    width={24}
+                    height={24}
+                    className='rounded-full'
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                ) : null}
+                <div className='flex flex-col'>
+                  <span className='font-medium text-sm'>
+                    {token} DCA
+                  </span>
+                  <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
+                    {tokenStrategies.length} {tokenStrategies.length === 1 ? 'strategy' : 'strategies'}
+                  </span>
+                </div>
+              </div>
+              <span className='text-[hsl(var(--gray-300)/0.7)]'>
+                {isExpanded ? '▼' : '▶'}
+              </span>
+            </button>
+
+            {/* Expanded content with slider */}
+            {isExpanded && currentStrategy && (
+              <div className='border-t border-[hsl(var(--gray-300)/0.2)] p-4'>
+                {/* Slider navigation */}
+                {tokenStrategies.length > 1 && (
+                  <div className='flex items-center justify-between mb-4'>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        const newIndex = currentIndex > 0 ? currentIndex - 1 : tokenStrategies.length - 1;
+                        onSetStrategyIndex(groupKey, newIndex);
+                      }}
+                      className='flex items-center justify-center h-8 w-8 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:text-[hsl(var(--sky-300))]'
+                      disabled={tokenStrategies.length <= 1}
+                    >
+                      ←
+                    </button>
+                    <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
+                      {currentIndex + 1} / {tokenStrategies.length}
+                    </span>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        const newIndex = currentIndex < tokenStrategies.length - 1 ? currentIndex + 1 : 0;
+                        onSetStrategyIndex(groupKey, newIndex);
+                      }}
+                      className='flex items-center justify-center h-8 w-8 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:text-[hsl(var(--sky-300))]'
+                      disabled={tokenStrategies.length <= 1}
+                    >
+                      →
+                    </button>
+                  </div>
+                )}
+
+                {/* Strategy card */}
+                <div className='flex flex-col gap-3 text-sm'>
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-2'>
+                      {currentStrategy.tokenLogo && (
+                        <Image
+                          src={currentStrategy.tokenLogo}
+                          alt={currentStrategy.token}
+                          width={24}
+                          height={24}
+                          className='rounded-full'
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <div className='flex flex-col'>
+                        <span className='font-medium'>
+                          {currentStrategy.token} DCA
+                        </span>
+                        <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
+                          {currentStrategy.frequency} • $
+                          {currentStrategy.amountPerDca.toFixed(2)} USDC per run
+                        </span>
+                      </div>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <button
+                        type='button'
+                        onClick={() => onModifyStrategy(currentStrategy.id)}
+                        className='inline-flex items-center px-3 py-1 text-xs font-medium transition-colors border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-foreground hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
+                      >
+                        Modify Strategy
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => onDeleteStrategy(currentStrategy.id)}
+                        className='inline-flex items-center justify-center h-6 w-6 border border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] transition-colors hover:border-red-500/50 hover:text-red-500 hover:bg-red-500/10'
+                        title='Delete strategy'
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className='flex flex-col gap-2 border-t border-[hsl(var(--gray-300)/0.2)] pt-3'>
+                    <div className='flex items-center justify-between text-xs'>
+                      <span className='text-[hsl(var(--gray-300)/0.7)]'>Available USDC</span>
+                      <span className='font-medium'>${currentStrategy.availableUsdc.toFixed(2)}</span>
+                    </div>
+                    <div className='flex items-center justify-between text-xs'>
+                      <span className='text-[hsl(var(--gray-300)/0.7)]'>
+                        Available {currentStrategy.token}
+                      </span>
+                      <span className='font-medium'>
+                        {currentStrategy.tokenBalance.toFixed(2)} {currentStrategy.token}
+                      </span>
+                    </div>
+                    
+                    {currentStrategy.takeProfitPct !== undefined && (
+                      <div className='flex items-center justify-between text-xs'>
+                        <span className='text-[hsl(var(--gray-300)/0.7)]'>Take-profit</span>
+                        <span className='font-medium'>{currentStrategy.takeProfitPct.toFixed(1)}%</span>
+                      </div>
+                    )}
+                    
+                    {currentStrategy.lastExecutedTsMillis && parseFloat(currentStrategy.lastExecutedTsMillis) > 0 && (
+                      <div className='flex items-center justify-between text-xs'>
+                        <span className='text-[hsl(var(--gray-300)/0.7)]'>Last DCA</span>
+                        <span className='font-medium'>
+                          {formatLastDca(currentStrategy.lastExecutedTsMillis)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className='flex flex-wrap gap-2'>
+                    <button
+                      type='button'
+                      onClick={() => onDeposit(currentStrategy.id)}
+                      className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)]'
+                    >
+                      Deposit
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => onWithdraw(currentStrategy.id, 'usdc')}
+                      disabled={currentStrategy.availableUsdc === 0}
+                      className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
+                    >
+                      Withdraw USDC
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => onWithdraw(currentStrategy.id, 'token')}
+                      disabled={currentStrategy.tokenBalance === 0}
+                      className='flex-1 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
+                    >
+                      Withdraw {currentStrategy.token}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
