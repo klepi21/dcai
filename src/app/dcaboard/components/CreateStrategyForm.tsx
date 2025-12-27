@@ -2,7 +2,9 @@
 import { useState } from 'react';
 import { MultiversXToken } from '../types';
 import { DcaSetup } from '@/hooks/dca/useDcaContract';
-import { NetworkConfig } from '@/lib';
+import { useGetNetworkConfig } from '@/lib';
+
+type NetworkConfig = ReturnType<typeof useGetNetworkConfig>['network'];
 import { TokenDropdown } from './TokenDropdown';
 import { FrequencyDropdown } from './FrequencyDropdown';
 import { FrequencyInfoTooltip } from './FrequencyInfoTooltip';

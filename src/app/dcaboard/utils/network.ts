@@ -1,4 +1,6 @@
-import { NetworkConfig } from '@/lib';
+import { useGetNetworkConfig } from '@/lib';
+
+type NetworkConfig = ReturnType<typeof useGetNetworkConfig>['network'];
 
 export function getNetworkPath(network: NetworkConfig): string {
   if (network.apiAddress) {

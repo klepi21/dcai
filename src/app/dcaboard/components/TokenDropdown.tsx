@@ -1,7 +1,9 @@
 import Image from 'next/image';
 import { MultiversXToken } from '../types';
 import { getNetworkPath } from '../utils/network';
-import { NetworkConfig } from '@/lib';
+import { useGetNetworkConfig } from '@/lib';
+
+type NetworkConfig = ReturnType<typeof useGetNetworkConfig>['network'];
 
 interface TokenDropdownProps {
   tokens: MultiversXToken[];
