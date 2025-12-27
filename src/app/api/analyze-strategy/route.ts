@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LLMAnalysisResponse } from '@/app/dcaboard/types';
 
-const GROK_API_KEY = process.env.GROK_API_KEY;
-const GROK_API_BASE = 'https://api.x.ai/v1';
-const GROK_MODEL = 'grok-3';
+// HODLOTH - DCAi's custom LLM for strategy analysis
+const HODLOTH_API_KEY = process.env.GROK_API_KEY; // Using same env var for now
+const HODLOTH_API_BASE = 'https://api.x.ai/v1';
+const HODLOTH_MODEL = 'grok-3';
 
 interface StrategyInputs {
   token: string;
@@ -21,9 +22,9 @@ interface MarketStatistics {
 
 export async function POST(request: NextRequest) {
   try {
-    if (!GROK_API_KEY) {
+    if (!HODLOTH_API_KEY) {
       return NextResponse.json(
-        { error: 'Grok API key not configured' },
+        { error: 'HODLOTH API key not configured' },
         { status: 500 }
       );
     }
@@ -43,14 +44,14 @@ Tasks: Detect risks/inefficiencies, explain using stats, suggest param improveme
 Output JSON only:
 {"risk_level":"LOW|MEDIUM|HIGH","issues":["issue1"],"suggestions":["suggestion1"],"expected_effect":"brief effect","suggested_parameters":{"usdc_per_swap":50.0|null,"frequency":"daily"|null,"take_profit":10.0|null}}`;
 
-    const response = await fetch(`${GROK_API_BASE}/chat/completions`, {
+    const response = await fetch(`${HODLOTH_API_BASE}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROK_API_KEY}`
+        'Authorization': `Bearer ${HODLOTH_API_KEY}`
       },
       body: JSON.stringify({
-        model: GROK_MODEL,
+        model: HODLOTH_MODEL,
         messages: [
           {
             role: 'user',
@@ -65,7 +66,7 @@ Output JSON only:
     if (!response.ok) {
       const errorText = await response.text();
       return NextResponse.json(
-        { error: `Grok API error: ${response.status} - ${errorText}` },
+        { error: `HODLOTH API error: ${response.status} - ${errorText}` },
         { status: response.status }
       );
     }
@@ -75,7 +76,7 @@ Output JSON only:
     
     if (!content) {
       return NextResponse.json(
-        { error: 'No response from Grok API' },
+        { error: 'No response from HODLOTH' },
         { status: 500 }
       );
     }
@@ -91,7 +92,7 @@ Output JSON only:
     // Validate the response structure
     if (!analysis.risk_level || !Array.isArray(analysis.issues) || !Array.isArray(analysis.suggestions)) {
       return NextResponse.json(
-        { error: 'Invalid response format from Grok API' },
+        { error: 'Invalid response format from HODLOTH' },
         { status: 500 }
       );
     }

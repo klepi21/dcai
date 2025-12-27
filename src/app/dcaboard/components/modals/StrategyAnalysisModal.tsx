@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { LLMAnalysisResponse, TokenMarketData } from '../../types';
-import { analyzeStrategyWithGrok } from '../../utils/grokLLM';
+import { analyzeStrategyWithHodloth } from '../../utils/hodlothLLM';
 
 interface StrategyAnalysisModalProps {
   isOpen: boolean;
@@ -41,7 +41,7 @@ export function StrategyAnalysisModal({
       // Extract token ticker from identifier (e.g., "HTM-abdfrg" -> "HTM")
       const tokenTicker = token.split('-')[0] || token;
       
-      analyzeStrategyWithGrok(
+      analyzeStrategyWithHodloth(
         {
           token: tokenTicker,
           usdcPerSwap,
@@ -117,7 +117,7 @@ export function StrategyAnalysisModal({
                 muted
                 className='w-48 h-48 mb-4'
               >
-                <source src='/assets/img/FinanceSaving.webm' type='video/webm' />
+                <source src='/assets/img/BlackSpinn.webm' type='video/webm' />
               </video>
               <p className='text-sm text-[hsl(var(--gray-300)/0.8)]'>
                 Analyzing your strategy...

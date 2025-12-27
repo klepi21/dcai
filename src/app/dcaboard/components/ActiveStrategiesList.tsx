@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
+import { AlertTriangle } from 'lucide-react';
 import { DcaStrategy } from '../types';
 import { formatLastDca } from '../utils/formatTime';
 import { BuysModal } from './modals/BuysModal';
@@ -97,9 +98,17 @@ export function ActiveStrategiesList({
                   />
                 ) : null}
                 <div className='flex flex-col'>
-                  <span className='font-medium text-sm'>
-                    {token} DCA
-                  </span>
+                  <div className='flex items-center gap-2'>
+                    <span className='font-medium text-sm'>
+                      {token} DCA
+                    </span>
+                    {/* Warning icon if any strategy has insufficient balance */}
+                    {tokenStrategies.some(s => s.availableUsdc === 0 || s.availableUsdc < s.amountPerDca) && (
+                      <div title='One or more strategies need funding to activate DCA'>
+                        <AlertTriangle className='w-4 h-4 text-yellow-500 flex-shrink-0' />
+                      </div>
+                    )}
+                  </div>
                   <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
                     {tokenStrategies.length} {tokenStrategies.length === 1 ? 'strategy' : 'strategies'}
                   </span>
@@ -189,6 +198,18 @@ export function ActiveStrategiesList({
                       </button>
                     </div>
                   </div>
+
+                  {/* Warning message for insufficient balance */}
+                  {(currentStrategy.availableUsdc === 0 || currentStrategy.availableUsdc < currentStrategy.amountPerDca) && (
+                    <div className='flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs'>
+                      <AlertTriangle className='w-4 h-4 text-yellow-500 flex-shrink-0' />
+                      <span className='text-yellow-600 dark:text-yellow-400'>
+                        {currentStrategy.availableUsdc === 0 
+                          ? 'Deposit USDC to activate DCA for this strategy'
+                          : `Deposit at least $${(currentStrategy.amountPerDca - currentStrategy.availableUsdc).toFixed(2)} more USDC to activate DCA`}
+                      </span>
+                    </div>
+                  )}
                   
                   <div className='flex flex-col gap-2 border-t border-[hsl(var(--gray-300)/0.2)] pt-3'>
                     <div className='flex items-center justify-between text-xs'>
