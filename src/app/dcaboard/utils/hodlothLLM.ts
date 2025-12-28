@@ -28,7 +28,17 @@ function checkRateLimit(): void {
       const oldestRequest = rateLimit.timestamps[0];
       const timeUntilNext = RATE_LIMIT_WINDOW - (now - oldestRequest);
       const minutesLeft = Math.ceil(timeUntilNext / 60000);
-      throw new Error(`Rate limit exceeded. Please wait ${minutesLeft} minute(s) before requesting another analysis.`);
+      const resetTime = new Date(now + timeUntilNext);
+      const resetTimeStr = resetTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      const minutesText = minutesLeft === 1 ? 'minute' : 'minutes';
+      const message = `🦥 HODLOTH needs a coffee break! You've used all ${MAX_REQUESTS_PER_WINDOW} analysis requests. 
+
+Why the limit? HODLOTH's AI brain runs on premium compute (and coffee ☕), so we limit usage to keep costs sustainable and ensure quality analysis for everyone.
+
+⏰ Your limit resets in ${minutesLeft} ${minutesText} (at ${resetTimeStr}). Time to grab a snack and come back refreshed! 🍪`;
+      
+      throw new Error(message);
     }
     
     // Add current request

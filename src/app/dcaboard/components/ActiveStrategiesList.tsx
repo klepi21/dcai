@@ -45,6 +45,7 @@ export function ActiveStrategiesList({
 }: ActiveStrategiesListProps) {
   const [showBuysModal, setShowBuysModal] = useState<{ strategyId: string; buys: typeof strategies[0]['buys'] } | null>(null);
   const [showSellsModal, setShowSellsModal] = useState<{ strategyId: string; sells: typeof strategies[0]['sells'] } | null>(null);
+  const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
   if (strategies.length === 0) {
     return (
       <p className='text-sm text-[hsl(var(--gray-300)/0.7)]'>
@@ -247,22 +248,49 @@ export function ActiveStrategiesList({
                     )}
                   </div>
 
-                  {/* DCA and Take Profit Buttons */}
-                  <div className='flex items-center gap-2 border-t border-[hsl(var(--gray-300)/0.2)] pt-3'>
-                    <button
-                      type='button'
-                      onClick={() => setShowBuysModal({ strategyId: currentStrategy.id, buys: currentStrategy.buys || [] })}
-                      className='flex-1 text-xs px-3 py-1.5 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] hover:border-[hsl(var(--sky-300)/0.5)] hover:text-[hsl(var(--sky-300))] hover:bg-[hsl(var(--gray-300)/0.05)] transition-colors rounded'
-                    >
-                      DCA ({currentStrategy.buys?.length || 0})
-                    </button>
-                    <button
-                      type='button'
-                      onClick={() => setShowSellsModal({ strategyId: currentStrategy.id, sells: currentStrategy.sells || [] })}
-                      className='flex-1 text-xs px-3 py-1.5 border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.8)] hover:border-[hsl(var(--red-300)/0.5)] hover:text-[hsl(var(--red-300))] hover:bg-[hsl(var(--gray-300)/0.05)] transition-colors rounded'
-                    >
-                      Take Profit ({currentStrategy.sells?.length || 0})
-                    </button>
+                  {/* History Section */}
+                  <div className='border-t border-[hsl(var(--gray-300)/0.2)] pt-3'>
+                    <div className='bg-gray-200 dark:bg-gray-800 border border-[hsl(var(--gray-300)/0.15)] p-3'>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          const newExpanded = new Set(expandedHistory);
+                          if (newExpanded.has(currentStrategy.id)) {
+                            newExpanded.delete(currentStrategy.id);
+                          } else {
+                            newExpanded.add(currentStrategy.id);
+                          }
+                          setExpandedHistory(newExpanded);
+                        }}
+                        className='w-full flex items-center gap-2 mb-0 text-left hover:opacity-80 transition-opacity'
+                      >
+                        <span className='text-xs font-semibold text-[hsl(var(--gray-300)/0.9)] uppercase tracking-wider'>
+                          View History
+                        </span>
+                        <div className='flex-1 h-px bg-[hsl(var(--gray-300)/0.2)]'></div>
+                        <span className='text-[hsl(var(--gray-300)/0.7)] text-xs'>
+                          {expandedHistory.has(currentStrategy.id) ? '▼' : '▶'}
+                        </span>
+                      </button>
+                      {expandedHistory.has(currentStrategy.id) && (
+                        <div className='flex items-center gap-2 p-2 mt-3'>
+                          <button
+                            type='button'
+                            onClick={() => setShowBuysModal({ strategyId: currentStrategy.id, buys: currentStrategy.buys || [] })}
+                            className='flex-1 text-xs px-3 py-2 border border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.9)] hover:border-[hsl(var(--sky-300)/0.6)] hover:text-[hsl(var(--sky-300))] hover:bg-[hsl(var(--sky-300)/0.1)] transition-colors font-medium'
+                          >
+                            DCA ({currentStrategy.buys?.length || 0})
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => setShowSellsModal({ strategyId: currentStrategy.id, sells: currentStrategy.sells || [] })}
+                            className='flex-1 text-xs px-3 py-2 border border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.9)] hover:border-[hsl(var(--red-300)/0.6)] hover:text-[hsl(var(--red-300))] hover:bg-[hsl(var(--red-300)/0.1)] transition-colors font-medium'
+                          >
+                            Take Profit ({currentStrategy.sells?.length || 0})
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className='flex flex-wrap gap-2'>
