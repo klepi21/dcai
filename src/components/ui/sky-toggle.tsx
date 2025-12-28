@@ -9,7 +9,7 @@ const StyledWrapper = styled.div`
     --toggle-size: 16px;
     --container-width: 5.625em;
     --container-height: 2.5em;
-    --container-radius: 6.25em;
+    --container-radius: 0;
     --container-light-bg: #3d7eae;
     --container-night-bg: #1d1f2c;
     --circle-container-diameter: 3.375em;
@@ -200,7 +200,7 @@ const Switch: React.FC = () => {
   const { isDark, toggle } = useDcaBoardTheme();
 
   return (
-    <StyledWrapper>
+    <StyledWrapper className='h-10 flex items-center'>
       <label className='theme-switch'>
         <input
           type='checkbox'

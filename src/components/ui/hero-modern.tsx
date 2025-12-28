@@ -277,7 +277,7 @@ function HeroOrbitDeck() {
           <div className='space-y-4 md:space-y-8'>
             <div className='flex flex-wrap items-center gap-2 md:gap-4'>
               <span
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.3em] md:tracking-[0.4em] ${palette.border} ${palette.accent}`}
+                className={`inline-flex items-center gap-2 rounded-none border px-3 py-1 text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.3em] md:tracking-[0.4em] ${palette.border} ${palette.accent}`}
               >
                 DCAi Neuro-Engine
               </span>
@@ -294,7 +294,7 @@ function HeroOrbitDeck() {
             </div>
             <div className='flex flex-col gap-3'>
               <div
-                className={`inline-flex flex-wrap gap-2 rounded-full border px-3 py-2 md:px-5 md:py-3 text-[10px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.3em] transition ${palette.border} ${palette.accent}`}
+                className={`inline-flex flex-wrap gap-2 rounded-none border px-3 py-2 md:px-5 md:py-3 text-[10px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.3em] transition ${palette.border} ${palette.accent}`}
               >
                 <span className='flex items-center gap-1.5 md:gap-2'>
                   <span className='h-1 w-1 md:h-1.5 md:w-1.5 rounded-full bg-current animate-pulse' />
@@ -304,7 +304,7 @@ function HeroOrbitDeck() {
                 <span>MultiversX Native</span>
               </div>
               <div
-                className={`flex divide-x divide-[hsl(var(--gray-300)/0.2)] overflow-hidden rounded-full border text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.35em] ${palette.border}`}
+                className={`flex divide-x divide-[hsl(var(--gray-300)/0.2)] overflow-hidden rounded-none border text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.35em] ${palette.border}`}
               >
                 {metrics.map((metric) => (
                   <div key={metric.label} className='flex flex-col px-3 py-2 md:px-5 md:py-3'>
@@ -317,7 +317,7 @@ function HeroOrbitDeck() {
           </div>
 
           <div
-            className={`relative flex flex-col gap-4 md:gap-6 rounded-2xl md:rounded-3xl border p-4 md:p-8 transition ${palette.border} ${palette.card}`}
+            className={`relative flex flex-col gap-4 md:gap-6 rounded-none border p-4 md:p-8 transition ${palette.border} ${palette.card}`}
           >
             <div className='flex items-start justify-between gap-3 md:gap-4'>
               <div className='space-y-2 md:space-y-3'>
@@ -333,7 +333,7 @@ function HeroOrbitDeck() {
               <button
                 type='button'
                 onClick={() => setMode('strategy')}
-                className={`flex-1 rounded-full border px-3 py-1.5 md:px-4 md:py-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.3em] md:tracking-[0.35em] transition ${
+                className={`flex-1 rounded-none border px-3 py-1.5 md:px-4 md:py-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.3em] md:tracking-[0.35em] transition ${
                   mode === 'strategy'
                     ? 'bg-[hsl(var(--gray-300)/0.2)] text-foreground'
                     : `${palette.border} ${palette.accent}`
@@ -344,7 +344,7 @@ function HeroOrbitDeck() {
               <button
                 type='button'
                 onClick={() => setMode('execution')}
-                className={`flex-1 rounded-full border px-3 py-1.5 md:px-4 md:py-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.3em] md:tracking-[0.35em] transition ${
+                className={`flex-1 rounded-none border px-3 py-1.5 md:px-4 md:py-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.3em] md:tracking-[0.35em] transition ${
                   mode === 'execution'
                     ? 'bg-[hsl(var(--gray-300)/0.2)] text-foreground'
                     : `${palette.border} ${palette.accent}`
@@ -366,7 +366,7 @@ function HeroOrbitDeck() {
 
         <div className='grid gap-4 md:gap-10 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,0.9fr)] xl:items-stretch'>
           <div
-            className={`order-2 flex flex-col gap-4 md:gap-6 rounded-2xl md:rounded-3xl border p-4 md:p-8 transition ${palette.border} ${palette.card} xl:order-1`}
+            className={`order-2 flex flex-col gap-4 md:gap-6 rounded-none border p-4 md:p-8 transition ${palette.border} ${palette.card} xl:order-1`}
           >
             <div className='flex items-center justify-between'>
               <h3 className='text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.35em]'>DCA Advantages</h3>
@@ -385,7 +385,7 @@ function HeroOrbitDeck() {
               ].map((item) => (
                 <div
                   key={item}
-                  className={`relative overflow-hidden rounded-xl md:rounded-2xl border px-3 py-2 md:px-4 md:py-3 text-[10px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.3em] transition duration-500 hover:-translate-y-0.5 ${palette.border}`}
+                  className={`relative overflow-hidden rounded-none border px-3 py-2 md:px-4 md:py-3 text-[10px] md:text-xs uppercase tracking-[0.25em] md:tracking-[0.3em] transition duration-500 hover:-translate-y-0.5 ${palette.border}`}
                 >
                   <span>{item}</span>
                   <span
@@ -400,7 +400,7 @@ function HeroOrbitDeck() {
           </div>
 
           <figure
-            className={`order-1 overflow-hidden rounded-[32px] border transition xl:order-2 ${palette.border}`}
+            className={`order-1 overflow-hidden rounded-none border transition xl:order-2 ${palette.border}`}
             style={{ position: 'relative' }}
           >
             <div className='relative w-full pb-[120%] sm:pb-[90%] lg:pb-[72%]'>
@@ -425,7 +425,7 @@ function HeroOrbitDeck() {
           </figure>
 
           <aside
-            className={`order-3 flex flex-col gap-4 md:gap-6 rounded-2xl md:rounded-3xl border p-4 md:p-8 transition ${palette.border} ${palette.card} xl:order-3`}
+            className={`order-3 flex flex-col gap-4 md:gap-6 rounded-none border p-4 md:p-8 transition ${palette.border} ${palette.card} xl:order-3`}
           >
             <div className='flex items-center justify-between'>
               <h3 className='text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.35em]'>DCA Workflow</h3>
@@ -437,7 +437,7 @@ function HeroOrbitDeck() {
                   key={protocol.name}
                   onMouseMove={setSpotlight}
                   onMouseLeave={clearSpotlight}
-                  className='group relative overflow-hidden rounded-xl md:rounded-2xl border px-3 py-2.5 md:px-5 md:py-4 transition duration-500 hover:-translate-y-0.5'
+                  className='group relative overflow-hidden rounded-none border px-3 py-2.5 md:px-5 md:py-4 transition duration-500 hover:-translate-y-0.5'
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <div
