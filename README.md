@@ -4,6 +4,15 @@ DCAi is a sophisticated dApp for dollar cost averaging in the MultiversX ecosyst
 
 Built with Next.js and @multiversx/sdk-dapp.
 
+## 🏗️ Architecture
+
+DCAi consists of three main components:
+- **Frontend (Next.js)**: User interface and wallet interactions
+- **Smart Contracts (MultiversX)**: On-chain strategy management
+- **Automation Microservice**: Background service for automated DCA and take-profit execution
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed architecture diagrams and system overview.
+
 ### Setup next.config.js.
 
 See [documentation](https://nextjs.org/docs/pages/api-reference/next-config-js/transpilePackages)

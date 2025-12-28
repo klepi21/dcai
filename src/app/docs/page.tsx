@@ -82,15 +82,35 @@ export default function DocsPage() {
                   </p>
                 </div>
                 <div>
-                  <h3 className='font-semibold mb-2 text-foreground'>3. Automatic Execution</h3>
-                  <p>
-                    Once your strategy is active and funded, DCAi automatically executes buy orders at your specified frequency. Each buy transaction is recorded in your strategy's history.
+                  <h3 className='font-semibold mb-2 text-foreground'>3. Automatic Execution (Powered by Automation Microservice)</h3>
+                  <p className='mb-2'>
+                    Once your strategy is active and funded, DCAi's <strong>dedicated automation microservice</strong> takes over completely. This background service runs 24/7 and handles all execution automatically:
+                  </p>
+                  <ul className='list-disc list-inside space-y-1 ml-4 mt-2'>
+                    <li><strong>Continuous Monitoring:</strong> The microservice continuously monitors all active strategies, checking if the DCA frequency has elapsed</li>
+                    <li><strong>Automatic Buy Execution:</strong> When it's time for a DCA purchase, the microservice automatically executes the swap transaction on the MultiversX DEX</li>
+                    <li><strong>No User Action Required:</strong> Once you create and fund a strategy, you can set it and forget it - the microservice handles everything</li>
+                    <li><strong>Transaction Recording:</strong> Each buy transaction is automatically recorded in your strategy's history on-chain</li>
+                    <li><strong>Multi-Strategy Support:</strong> The microservice can monitor and execute hundreds of strategies simultaneously across all users</li>
+                  </ul>
+                  <p className='mt-2 text-xs text-[hsl(var(--gray-300)/0.6)] italic'>
+                    💡 This is a fully automated backend service that runs independently of the frontend, ensuring your strategies execute even when you're not actively using the dApp.
                   </p>
                 </div>
                 <div>
-                  <h3 className='font-semibold mb-2 text-foreground'>4. Take Profit</h3>
-                  <p>
-                    If you've set a take profit percentage, DCAi will automatically sell your tokens when the price increases by that percentage, locking in your profits.
+                  <h3 className='font-semibold mb-2 text-foreground'>4. Automatic Take Profit (Real-Time Price Monitoring)</h3>
+                  <p className='mb-2'>
+                    If you've set a take profit percentage, DCAi's automation microservice includes a <strong>real-time price monitoring system</strong> that:
+                  </p>
+                  <ul className='list-disc list-inside space-y-1 ml-4 mt-2'>
+                    <li><strong>Continuous Price Tracking:</strong> Monitors token prices in real-time from MultiversX market data</li>
+                    <li><strong>Profit Calculation:</strong> Automatically calculates your profit percentage based on your average entry price</li>
+                    <li><strong>Automatic Sell Execution:</strong> When your profit target is reached, the microservice immediately executes a sell transaction</li>
+                    <li><strong>Instant Profit Locking:</strong> Your profits are locked in as USDC, which you can withdraw at any time</li>
+                    <li><strong>Multiple Strategies:</strong> Can monitor take profit conditions for all your strategies simultaneously</li>
+                  </ul>
+                  <p className='mt-2'>
+                    This happens completely automatically - you don't need to watch the markets or manually execute trades. The microservice handles everything in the background.
                   </p>
                 </div>
               </div>
@@ -131,6 +151,229 @@ export default function DocsPage() {
                   <p>
                     Track your strategy's performance in the "Active strategies" section. View your buy history, take profit transactions, current balances, and modify or delete strategies as needed.
                   </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Visual Guide: How to Create a Strategy */}
+          <div className='border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-6 shadow-sm'>
+            <button
+              onClick={() => toggleSection('visual-guide')}
+              className='w-full text-left flex items-center justify-between'
+            >
+              <h2 className='text-lg font-semibold'>📋 Visual Guide: Creating Your First Strategy</h2>
+              <span className='text-xl'>{openSection === 'visual-guide' ? '−' : '+'}</span>
+            </button>
+            {openSection === 'visual-guide' && (
+              <div className='mt-4 space-y-6 text-sm'>
+                {/* Step 1 */}
+                <div className='border-l-4 border-blue-500 pl-4 py-2 bg-[hsl(var(--gray-300)/0.1)] rounded-r'>
+                  <div className='flex items-start gap-3'>
+                    <div className='flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm'>
+                      1
+                    </div>
+                    <div className='flex-1'>
+                      <h3 className='font-semibold mb-2 text-foreground flex items-center gap-2'>
+                        <span>🔌 Connect Your Wallet</span>
+                      </h3>
+                      <p className='text-[hsl(var(--gray-300)/0.8)] mb-2'>
+                        Click the "Connect Wallet" button in the top right corner. Select your MultiversX wallet (xPortal, DeFi Wallet, etc.) and approve the connection.
+                      </p>
+                      <div className='mt-2 p-3 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded text-xs'>
+                        <strong>💡 Tip:</strong> Make sure you have USDC in your wallet before creating a strategy. You'll need it to fund your DCA purchases.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 2 */}
+                <div className='border-l-4 border-green-500 pl-4 py-2 bg-[hsl(var(--gray-300)/0.1)] rounded-r'>
+                  <div className='flex items-start gap-3'>
+                    <div className='flex-shrink-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm'>
+                      2
+                    </div>
+                    <div className='flex-1'>
+                      <h3 className='font-semibold mb-2 text-foreground flex items-center gap-2'>
+                        <span>🎯 Fill in Strategy Parameters</span>
+                      </h3>
+                      <p className='text-[hsl(var(--gray-300)/0.8)] mb-3'>
+                        In the "Create Strategy" form, fill in the following:
+                      </p>
+                      <div className='space-y-2 mb-3'>
+                        <div className='flex items-start gap-2 p-2 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded'>
+                          <span className='text-lg'>🪙</span>
+                          <div>
+                            <strong className='text-foreground'>Select Token:</strong>
+                            <p className='text-xs text-[hsl(var(--gray-300)/0.8)]'>Choose the cryptocurrency you want to DCA into (e.g., EGLD, HTM)</p>
+                          </div>
+                        </div>
+                        <div className='flex items-start gap-2 p-2 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded'>
+                          <span className='text-lg'>💰</span>
+                          <div>
+                            <strong className='text-foreground'>USDC per Swap:</strong>
+                            <p className='text-xs text-[hsl(var(--gray-300)/0.8)]'>Enter the amount of USDC to invest in each DCA transaction (e.g., 10, 50, 100)</p>
+                          </div>
+                        </div>
+                        <div className='flex items-start gap-2 p-2 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded'>
+                          <span className='text-lg'>⏰</span>
+                          <div>
+                            <strong className='text-foreground'>Frequency:</strong>
+                            <p className='text-xs text-[hsl(var(--gray-300)/0.8)]'>Select how often to execute (Hourly, Daily, Weekly, Monthly)</p>
+                          </div>
+                        </div>
+                        <div className='flex items-start gap-2 p-2 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded'>
+                          <span className='text-lg'>📈</span>
+                          <div>
+                            <strong className='text-foreground'>Take Profit (Optional):</strong>
+                            <p className='text-xs text-[hsl(var(--gray-300)/0.8)]'>Enable and set a percentage (e.g., 10%, 15%) to automatically sell when profit target is reached</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div className='border-l-4 border-purple-500 pl-4 py-2 bg-[hsl(var(--gray-300)/0.1)] rounded-r'>
+                  <div className='flex items-start gap-3'>
+                    <div className='flex-shrink-0 w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-sm'>
+                      3
+                    </div>
+                    <div className='flex-1'>
+                      <h3 className='font-semibold mb-2 text-foreground flex items-center gap-2'>
+                        <span>🤖 Review HODLOTH Analysis</span>
+                      </h3>
+                      <p className='text-[hsl(var(--gray-300)/0.8)] mb-3'>
+                        Click "Create Strategy" button. HODLOTH will analyze your strategy parameters and show you:
+                      </p>
+                      <div className='space-y-2 mb-3'>
+                        <div className='p-2 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded'>
+                          <strong className='text-foreground'>📊 Risk Level:</strong>
+                          <span className='text-xs text-[hsl(var(--gray-300)/0.8)] ml-2'>LOW, MEDIUM, or HIGH</span>
+                        </div>
+                        <div className='p-2 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded'>
+                          <strong className='text-foreground'>⚠️ Issues:</strong>
+                          <span className='text-xs text-[hsl(var(--gray-300)/0.8)] ml-2'>Potential problems with your strategy</span>
+                        </div>
+                        <div className='p-2 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded'>
+                          <strong className='text-foreground'>💡 Suggestions:</strong>
+                          <span className='text-xs text-[hsl(var(--gray-300)/0.8)] ml-2'>Recommended improvements</span>
+                        </div>
+                        <div className='p-2 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded'>
+                          <strong className='text-foreground'>🎯 Expected Effect:</strong>
+                          <span className='text-xs text-[hsl(var(--gray-300)/0.8)] ml-2'>What to expect from the strategy</span>
+                        </div>
+                      </div>
+                      <div className='mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs'>
+                        <strong>⚡ Quick Actions:</strong>
+                        <ul className='list-disc list-inside mt-1 space-y-1'>
+                          <li><strong>"Modify Strategy":</strong> Apply HODLOTH's suggested parameters and create the strategy</li>
+                          <li><strong>"Create Strategy":</strong> Proceed with your original parameters</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 4 */}
+                <div className='border-l-4 border-orange-500 pl-4 py-2 bg-[hsl(var(--gray-300)/0.1)] rounded-r'>
+                  <div className='flex items-start gap-3'>
+                    <div className='flex-shrink-0 w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm'>
+                      4
+                    </div>
+                    <div className='flex-1'>
+                      <h3 className='font-semibold mb-2 text-foreground flex items-center gap-2'>
+                        <span>✍️ Sign Transaction</span>
+                      </h3>
+                      <p className='text-[hsl(var(--gray-300)/0.8)] mb-2'>
+                        Approve the transaction in your wallet. This will create your strategy on the MultiversX blockchain and mint a unique strategy token to your wallet.
+                      </p>
+                      <div className='mt-2 p-3 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded text-xs'>
+                        <strong>⏱️ Processing:</strong> The transaction typically takes a few seconds to complete. You'll see a confirmation once it's done.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 5 */}
+                <div className='border-l-4 border-pink-500 pl-4 py-2 bg-[hsl(var(--gray-300)/0.1)] rounded-r'>
+                  <div className='flex items-start gap-3'>
+                    <div className='flex-shrink-0 w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center font-bold text-sm'>
+                      5
+                    </div>
+                    <div className='flex-1'>
+                      <h3 className='font-semibold mb-2 text-foreground flex items-center gap-2'>
+                        <span>💵 Fund Your Strategy</span>
+                      </h3>
+                      <p className='text-[hsl(var(--gray-300)/0.8)] mb-3'>
+                        Once your strategy is created, you'll see it in the "Active strategies" section. Click the <strong>"Deposit"</strong> button to add USDC funds.
+                      </p>
+                      <div className='space-y-2'>
+                        <div className='p-2 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded text-xs'>
+                          <strong>💰 Deposit USDC:</strong> Enter the amount you want to deposit. This USDC will be used for automatic DCA purchases.
+                        </div>
+                        <div className='p-2 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded text-xs'>
+                          <strong>✅ Confirm:</strong> Sign the deposit transaction. Your strategy is now funded and ready!
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 6 */}
+                <div className='border-l-4 border-cyan-500 pl-4 py-2 bg-[hsl(var(--gray-300)/0.1)] rounded-r'>
+                  <div className='flex items-start gap-3'>
+                    <div className='flex-shrink-0 w-8 h-8 rounded-full bg-cyan-500 text-white flex items-center justify-center font-bold text-sm'>
+                      6
+                    </div>
+                    <div className='flex-1'>
+                      <h3 className='font-semibold mb-2 text-foreground flex items-center gap-2'>
+                        <span>🚀 Strategy is Active!</span>
+                      </h3>
+                      <p className='text-[hsl(var(--gray-300)/0.8)] mb-3'>
+                        Your strategy is now live! The automation microservice will:
+                      </p>
+                      <div className='space-y-2'>
+                        <div className='flex items-start gap-2 p-2 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded'>
+                          <span>🔄</span>
+                          <div className='text-xs'>
+                            <strong className='text-foreground'>Automatically execute DCA buys</strong> at your specified frequency
+                          </div>
+                        </div>
+                        <div className='flex items-start gap-2 p-2 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded'>
+                          <span>📊</span>
+                          <div className='text-xs'>
+                            <strong className='text-foreground'>Monitor prices</strong> and execute take profit sales when targets are met
+                          </div>
+                        </div>
+                        <div className='flex items-start gap-2 p-2 bg-[hsl(var(--background))] border border-[hsl(var(--gray-300)/0.3)] rounded'>
+                          <span>📝</span>
+                          <div className='text-xs'>
+                            <strong className='text-foreground'>Record all transactions</strong> in your strategy history
+                          </div>
+                        </div>
+                      </div>
+                      <div className='mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded text-xs'>
+                        <strong>🎉 Congratulations!</strong> Your strategy is now running automatically. You can monitor it, modify it, or add more funds anytime from the "Active strategies" section.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Summary Box */}
+                <div className='mt-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-2 border-blue-500/30 rounded-lg'>
+                  <h4 className='font-semibold mb-2 text-foreground flex items-center gap-2'>
+                    <span>📌 Quick Summary</span>
+                  </h4>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-[hsl(var(--gray-300)/0.8)]'>
+                    <div>✓ Connect wallet</div>
+                    <div>✓ Fill strategy form</div>
+                    <div>✓ Review AI analysis</div>
+                    <div>✓ Sign transaction</div>
+                    <div>✓ Deposit USDC</div>
+                    <div>✓ Strategy runs automatically</div>
+                  </div>
                 </div>
               </div>
             )}

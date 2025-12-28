@@ -1,12 +1,12 @@
 {
     "buildInfo": {
         "rustc": {
-            "version": "1.92.0",
-            "commitHash": "ded5c06cf21d2b93bffd5d884aa6e96934ee4234",
-            "commitDate": "2025-12-08",
+            "version": "1.91.1",
+            "commitHash": "ed61e7d7e242494fb7057f2657300d9e77bb4fcb",
+            "commitDate": "2025-11-07",
             "channel": "Stable",
             "host": "x86_64-unknown-linux-gnu",
-            "short": "rustc 1.92.0 (ded5c06cf 2025-12-08)",
+            "short": "rustc 1.91.1 (ed61e7d7e 2025-11-07)",
             "llvmVersion": "21.1"
         },
         "contractCrate": {
@@ -228,6 +228,10 @@
                     "type": "BigUint"
                 },
                 {
+                    "name": "profit_fee_percentage",
+                    "type": "u64"
+                },
+                {
                     "name": "allowed_frequencies",
                     "type": "variadic<multi<bytes,u64>>",
                     "multi_arg": true
@@ -286,6 +290,41 @@
             "outputs": []
         },
         {
+            "name": "setProfitFeePercentage",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "profit_fee_percentage",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setCustomSlippagePercentage",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "custom_slippage_percentage",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "View to get the DCA setup parameters.",
+                "",
+                "Returns a `DcaSetup` multi-value containing:",
+                "1. The DCA token identifier.",
+                "1. The minimum amount per swap.",
+                "1. The strategy token identifier.",
+                "1. The profit fee percentage.",
+                "1. The final slippage percentage (to be used in swaps | either custom or default).",
+                "1. The allowed frequencies as a multi-value encoded of `DcaFrequencyInMillis` (frequency string and duration in millis)."
+            ],
             "name": "getSetup",
             "mutability": "readonly",
             "inputs": [],
@@ -300,45 +339,31 @@
                     "type": "TokenIdentifier"
                 },
                 {
+                    "type": "u64"
+                },
+                {
+                    "type": "u64"
+                },
+                {
                     "type": "variadic<multi<bytes,u64>>",
                     "multi_result": true
                 }
             ]
         },
         {
-            "name": "burn",
-            "onlyOwner": true,
+            "docs": [
+                "Endpoint to create a new DCA strategy.",
+                "",
+                "### Arguments",
+                "* `amount_per_swap` - The amount of USDC to be swapped in each DCA operation.",
+                "* `frequency` - The frequency at which DCA operations are executed (e.g., daily, weekly).",
+                "* `take_profit_percentage` - The percentage at which to take profit from DCA operations."
+            ],
+            "name": "createStrategy",
             "mutability": "mutable",
             "payableInTokens": [
                 "*"
             ],
-            "inputs": [
-                {
-                    "name": "nonce",
-                    "type": "u64"
-                }
-            ],
-            "outputs": []
-        },
-        {
-            "name": "withdrawBalance",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [
-                {
-                    "name": "token",
-                    "type": "EgldOrEsdtTokenIdentifier"
-                },
-                {
-                    "name": "amount",
-                    "type": "BigUint"
-                }
-            ],
-            "outputs": []
-        },
-        {
-            "name": "createStrategy",
-            "mutability": "mutable",
             "inputs": [
                 {
                     "name": "amount_per_swap",
@@ -356,6 +381,15 @@
             "outputs": []
         },
         {
+            "docs": [
+                "Endpoint to modify an existing DCA strategy.",
+                "The endpoint is payable and requires the strategy token NFT to identify the strategy.",
+                "",
+                "### Arguments",
+                "* `amount_per_swap` - The new amount of USDC to be swapped in each DCA operation.",
+                "* `frequency` - The new frequency at which DCA operations are executed (e.g., daily, weekly).",
+                "* `take_profit_percentage` - The new percentage at which to take profit from DCA operations."
+            ],
             "name": "modifyStrategy",
             "mutability": "mutable",
             "payableInTokens": [
@@ -378,6 +412,10 @@
             "outputs": []
         },
         {
+            "docs": [
+                "Endpoint to delete a DCA strategy.",
+                "The endpoint is payable and requires the strategy token NFT to identify the strategy."
+            ],
             "name": "deleteStrategy",
             "mutability": "mutable",
             "payableInTokens": [
@@ -387,6 +425,10 @@
             "outputs": []
         },
         {
+            "docs": [
+                "Endpoint to deposit USDC into a strategy.",
+                "The endpoint is payable and requires the strategy token NFT to identify the strategy."
+            ],
             "name": "deposit",
             "mutability": "mutable",
             "payableInTokens": [
@@ -396,6 +438,14 @@
             "outputs": []
         },
         {
+            "docs": [
+                "Endpoint to withdraw USDC or DCA tokens from a strategy.",
+                "The endpoint is payable and requires the strategy token NFT to identify the strategy.",
+                "",
+                "### Arguments",
+                "* `amount` - The amount to withdraw.",
+                "* `token_withdrawn` - An enum indicating whether to withdraw USDC or DCA tokens (1 for USDC, 2 for DCA token)."
+            ],
             "name": "withdraw",
             "mutability": "mutable",
             "payableInTokens": [
@@ -622,6 +672,26 @@
                 {
                     "name": "strategy_token",
                     "type": "TokenIdentifier",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "profitFeePercentageSet",
+            "inputs": [
+                {
+                    "name": "profit_fee_percentage",
+                    "type": "u64",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "customSlippagePercentageSet",
+            "inputs": [
+                {
+                    "name": "custom_slippage_percentage",
+                    "type": "u64",
                     "indexed": true
                 }
             ]
