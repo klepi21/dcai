@@ -40,7 +40,7 @@ export const useCreateStrategy = () => {
   const createStrategy = async (
     contractAddress: string, // DCA contract address (bech32)
     amountPerSwap: number, // USDC amount (e.g., 0.1)
-    frequency: string, // Frequency name (e.g., "Hourly")
+    frequency: string, // Frequency name (e.g., "hourly" or "Hourly")
     takeProfitPercentage?: number // Optional take profit percentage (e.g., 15 for 15%)
   ) => {
     if (!address) {
@@ -53,6 +53,9 @@ export const useCreateStrategy = () => {
     const usdcDecimals = 1000000; // 10^6
     const amountPerSwapInSmallestUnits = BigInt(Math.floor(amountPerSwap * usdcDecimals));
 
+    // Capitalize frequency to match smart contract expectations (e.g., "hourly" -> "Hourly")
+    const capitalizedFrequency = frequency.charAt(0).toUpperCase() + frequency.slice(1).toLowerCase();
+
     // Prepare arguments - all 3 are required by the ABI
     // frequency is bytes type, so pass as string (SDK will encode it)
     // take_profit_percentage is required (u64), use 0 if not provided
@@ -62,7 +65,7 @@ export const useCreateStrategy = () => {
 
     const args: any[] = [
       amountPerSwapInSmallestUnits, // BigUint: amount_per_swap
-      frequency, // bytes: frequency (string, SDK will encode to bytes)
+      capitalizedFrequency, // bytes: frequency (string, SDK will encode to bytes) - capitalized
       takeProfitBasisPoints // u64: take_profit_percentage (required, use 0 if not set)
     ];
 

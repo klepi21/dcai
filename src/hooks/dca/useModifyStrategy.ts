@@ -37,8 +37,11 @@ export const useModifyStrategy = () => {
       // Convert take profit percentage to basis points (multiply by 1000, e.g., 20% = 20000)
       const takeProfitBasisPoints = BigInt(Math.floor(takeProfitPercentage * 1000));
 
+      // Capitalize frequency to match smart contract expectations (e.g., "hourly" -> "Hourly")
+      const capitalizedFrequency = frequency.charAt(0).toUpperCase() + frequency.slice(1).toLowerCase();
+
       // Encode frequency as bytes (convert string to hex)
-      const frequencyHex = Buffer.from(frequency).toString('hex').toUpperCase();
+      const frequencyHex = Buffer.from(capitalizedFrequency).toString('hex').toUpperCase();
 
       // Parse strategy token identifier to extract collection and nonce
       // Format: "DCAIASH-1f57cc-02" -> collection: "DCAIASH-1f57cc", nonce: "02"

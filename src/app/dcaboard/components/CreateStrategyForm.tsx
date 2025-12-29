@@ -26,6 +26,7 @@ interface CreateStrategyFormProps {
   loadingTokens: boolean;
   setupError: string | null;
   isCreatingStrategy: boolean;
+  isAiModified?: boolean;
   onSubmit: (e: React.FormEvent) => void;
   network: NetworkConfig;
 }
@@ -48,6 +49,7 @@ export function CreateStrategyForm({
   loadingTokens,
   setupError,
   isCreatingStrategy,
+  isAiModified = false,
   onSubmit,
   network
 }: CreateStrategyFormProps) {
@@ -71,11 +73,18 @@ export function CreateStrategyForm({
   };
 
   return (
-    <form className='flex flex-col gap-4' onSubmit={onSubmit}>
+    <form className={`flex flex-col gap-4 ${isAiModified ? 'border-2 border-[hsl(var(--sky-300)/0.4)] bg-[hsl(var(--sky-300)/0.05)] p-4 rounded-none' : ''}`} onSubmit={onSubmit}>
       <div className='flex items-center justify-between'>
-        <h2 className='text-sm font-semibold tracking-tight'>
-          Create a DCA strategy
-        </h2>
+        <div className='flex items-center gap-2'>
+          <h2 className='text-sm font-semibold tracking-tight'>
+            Create a DCA strategy
+          </h2>
+          {isAiModified && (
+            <span className='text-xs px-2 py-0.5 bg-[hsl(var(--sky-300)/0.2)] text-[hsl(var(--sky-300))] border border-[hsl(var(--sky-300)/0.4)] rounded-none'>
+              AI Optimized
+            </span>
+          )}
+        </div>
         {setupError && (
           <span className='text-xs text-red-500'>{setupError}</span>
         )}
@@ -171,7 +180,7 @@ export function CreateStrategyForm({
           disabled={isCreatingStrategy}
           className='inline-flex items-center justify-center bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
         >
-          {isCreatingStrategy ? 'Creating...' : 'Create Strategy'}
+          {isCreatingStrategy ? 'Creating...' : (isAiModified ? 'DCAi Strategy' : 'Create Strategy')}
         </button>
       </div>
     </form>

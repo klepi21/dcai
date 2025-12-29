@@ -35,6 +35,8 @@ export default function DCABoard() {
   const [amountPerDca, setAmountPerDca] = useState<string>('');
   const [showTakeProfit, setShowTakeProfit] = useState<boolean>(false);
   const [takeProfitPct, setTakeProfitPct] = useState<string>('15');
+  // State to track if form has been modified with AI suggestions
+  const [isAiModified, setIsAiModified] = useState<boolean>(false);
   // State for expandable strategy groups
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [strategyIndices, setStrategyIndices] = useState<Record<string, number>>({});
@@ -560,6 +562,12 @@ export default function DCABoard() {
             seenTokens.add(dcaTokenIdentifier);
             const tokenTicker = dcaTokenIdentifier.split('-')[0] || dcaTokenIdentifier;
             
+            // Skip tokens with numeric-only tickers (invalid token identifiers)
+            // A valid token ticker should contain at least one letter
+            if (/^\d+$/.test(tokenTicker)) {
+              return; // Skip this token
+            }
+            
             // Special handling for EGLD - use CoinMarketCap image
             const isEGLD = dcaTokenIdentifier === 'EGLD';
             const iconUrl = isEGLD 
@@ -631,7 +639,44 @@ export default function DCABoard() {
     // Take profit is optional in UI but required in ABI (use 0 if not provided)
     const parsedTakeProfit = showTakeProfit ? Number(takeProfitPct) : 0;
 
-    // Show analysis modal instead of creating strategy directly
+    // If form was modified by AI, skip analysis and create strategy directly
+    if (isAiModified) {
+      const contractAddress = selectedSetup.address;
+      
+      try {
+        setIsCreatingStrategy(true);
+        
+        const { sessionId } = await createStrategy(
+          contractAddress,
+          parsedAmount,
+          frequency,
+          parsedTakeProfit
+        );
+
+        // Reset form and AI modified state
+        setAmountPerDca('1.00');
+        setShowTakeProfit(false);
+        setTakeProfitPct('15');
+        setIsAiModified(false);
+        
+        // Wait for transaction success and then refetch
+        const success = await waitForTransactionSuccess(sessionId);
+        if (success && isMountedRef.current) {
+          fetchUserDcaiTokens();
+          // Refetch activity after a short delay
+          setTimeout(() => {
+            fetchActivity();
+          }, 1000);
+        }
+      } catch (error) {
+        alert(error instanceof Error ? error.message : 'Failed to create strategy');
+      } finally {
+        setIsCreatingStrategy(false);
+      }
+      return;
+    }
+
+    // Show analysis modal for new strategies
     setAnalysisModal({
       isOpen: true,
       token,
@@ -663,10 +708,11 @@ export default function DCABoard() {
         parsedTakeProfit
       );
 
-      // Reset form
+      // Reset form and AI modified state
       setAmountPerDca('1.00');
       setShowTakeProfit(false);
       setTakeProfitPct('15');
+      setIsAiModified(false);
       
       // Wait for transaction success and then refetch
       const success = await waitForTransactionSuccess(sessionId);
@@ -684,7 +730,7 @@ export default function DCABoard() {
     }
   };
 
-  const handleModifyStrategyAfterAnalysis = async (suggestions: string[], suggestedParams?: { usdc_per_swap?: number | null; frequency?: string | null; take_profit?: number | null }) => {
+  const handleModifyStrategyAfterAnalysis = (suggestions: string[], suggestedParams?: { usdc_per_swap?: number | null; frequency?: string | null; take_profit?: number | null }) => {
     if (!suggestedParams) {
       // Fallback: just show suggestions
       const suggestionsText = suggestions.length > 0 
@@ -695,80 +741,25 @@ export default function DCABoard() {
       return;
     }
 
-    // Apply suggested parameters
-    let newUsdcPerSwap = analysisModal.usdcPerSwap;
-    let newFrequency = analysisModal.frequency;
-    let newTakeProfit = analysisModal.takeProfit;
-
+    // Apply suggested parameters to form fields
     if (suggestedParams.usdc_per_swap !== null && suggestedParams.usdc_per_swap !== undefined) {
-      newUsdcPerSwap = suggestedParams.usdc_per_swap;
-      setAmountPerDca(newUsdcPerSwap.toFixed(2));
+      setAmountPerDca(suggestedParams.usdc_per_swap.toFixed(2));
     }
 
     if (suggestedParams.frequency !== null && suggestedParams.frequency !== undefined) {
-      newFrequency = suggestedParams.frequency.toLowerCase();
-      setFrequency(newFrequency);
+      setFrequency(suggestedParams.frequency.toLowerCase());
     }
 
     if (suggestedParams.take_profit !== null && suggestedParams.take_profit !== undefined) {
-      newTakeProfit = suggestedParams.take_profit;
-      setTakeProfitPct(newTakeProfit.toFixed(1));
-      if (newTakeProfit > 0) {
+      setTakeProfitPct(suggestedParams.take_profit.toFixed(1));
+      if (suggestedParams.take_profit > 0) {
         setShowTakeProfit(true);
       }
     }
 
-    // Update analysis modal with new values
-    const updatedModal = {
-      isOpen: true,
-      token: analysisModal.token,
-      usdcPerSwap: newUsdcPerSwap,
-      frequency: newFrequency,
-      takeProfit: newTakeProfit
-    };
-    setAnalysisModal(updatedModal);
-
-    // Find the setup that matches the selected token
-    const selectedSetup = setups?.find(s => s.dcaToken === analysisModal.token);
-    if (!selectedSetup) {
-      alert('Please select a valid token');
-      setAnalysisModal({ isOpen: false, token: '', usdcPerSwap: 0, frequency: '', takeProfit: 0 });
-      return;
-    }
-
-    const contractAddress = selectedSetup.address;
-
-    // Close the analysis modal and create strategy with new parameters
-    try {
-      setIsCreatingStrategy(true);
-      setAnalysisModal({ isOpen: false, token: '', usdcPerSwap: 0, frequency: '', takeProfit: 0 });
-      
-      const { sessionId } = await createStrategy(
-        contractAddress,
-        newUsdcPerSwap,
-        newFrequency,
-        newTakeProfit
-      );
-
-      // Reset form
-      setAmountPerDca('1.00');
-      setShowTakeProfit(false);
-      setTakeProfitPct('15');
-      
-      // Wait for transaction success and then refetch
-      const success = await waitForTransactionSuccess(sessionId);
-      if (success && isMountedRef.current) {
-        fetchUserDcaiTokens();
-        // Refetch activity after a short delay
-        setTimeout(() => {
-          fetchActivity();
-        }, 1000);
-      }
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to create strategy with suggested parameters');
-    } finally {
-      setIsCreatingStrategy(false);
-    }
+    // Mark form as AI-modified and close the modal
+    setIsAiModified(true);
+    setAnalysisModal({ isOpen: false, token: '', usdcPerSwap: 0, frequency: '', takeProfit: 0 });
   };
 
   const handleModifyStrategy = (strategyId: string) => {
@@ -1100,6 +1091,7 @@ export default function DCABoard() {
             loadingTokens={loadingTokens}
             setupError={setupError}
             isCreatingStrategy={isCreatingStrategy}
+            isAiModified={isAiModified}
             onSubmit={handleAddStrategy}
             network={network}
           />
