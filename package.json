@@ -44,6 +44,7 @@
     "protobufjs": "7.5.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-hot-toast": "^2.6.0",
     "rxjs": "^7.8.2",
     "styled-components": "^6.1.19",
     "tailwind-merge": "^3.4.0",

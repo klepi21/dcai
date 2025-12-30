@@ -5,6 +5,7 @@ import { Inter } from 'next/font/google';
 import { Layout } from '@/components/Layout';
 import App from './index';
 import { InitAppWrapper } from '@/wrappers';
+import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -30,6 +31,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Suspense>
               <Layout>{children}</Layout>
             </Suspense>
+            <Toaster position="bottom-right" toastOptions={{
+              style: {
+                background: '#1f2937',
+                color: '#fff',
+                border: '1px solid rgba(75, 85, 99, 0.4)',
+              },
+            }} />
           </App>
         </InitAppWrapper>
       </body>

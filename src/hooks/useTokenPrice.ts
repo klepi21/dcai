@@ -60,36 +60,23 @@ export function useTokenPrice(tokenIdentifier: string): TokenPrice {
 
         // Fetch tokens from MultiversX API
         const response = await fetch(`${apiUrl}/tokens?size=300`);
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch tokens: ${response.status}`);
         }
 
         const data = await response.json();
-        
+
         // Handle both array and object responses
         const tokens = Array.isArray(data) ? data : (data.data || []);
-        
-        // Debug: log token identifier and API response
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Fetching price for token:', tokenIdentifier);
-          console.log('API URL:', `${apiUrl}/tokens?size=300`);
-          console.log('Total tokens fetched:', tokens.length);
-        }
-        
+
         // Search for the token by identifier (exact match first, then case-insensitive)
-        const token = tokens.find((t: any) => 
+        const token = tokens.find((t: any) =>
           t.identifier === tokenIdentifier
-        ) || tokens.find((t: any) => 
+        ) || tokens.find((t: any) =>
           t.identifier?.toLowerCase() === tokenIdentifier.toLowerCase()
         );
 
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Token found:', token ? 'Yes' : 'No');
-          if (token) {
-            console.log('Token data:', { identifier: token.identifier, price: token.price, priceUsd: token.priceUsd, priceUSD: token.priceUSD });
-          }
-        }
 
         if (token) {
           // Check various possible price fields

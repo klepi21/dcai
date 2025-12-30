@@ -13,7 +13,10 @@ import { WithdrawModal } from './components/modals/WithdrawModal';
 import { DeleteModal } from './components/modals/DeleteModal';
 import { ModifyStrategyModal } from './components/modals/ModifyStrategyModal';
 import { StrategyAnalysisModal } from './components/modals/StrategyAnalysisModal';
+import { SuccessModal } from './components/modals/SuccessModal';
+import { LoadingState } from './components/LoadingState';
 import { getNetworkPath, getApiUrl } from './utils/network';
+import toast from 'react-hot-toast';
 
 export default function DCABoard() {
   const { setup, setups, loading: loadingSetup, error: setupError, queryGetStrategyTokenAttributes } = useDcaContract();
@@ -28,6 +31,7 @@ export default function DCABoard() {
   const [strategies, setStrategies] = useState<DcaStrategy[]>([]);
   const [tokens, setTokens] = useState<MultiversXToken[]>([]);
   const [loadingTokens, setLoadingTokens] = useState(true);
+  const [loadingStrategies, setLoadingStrategies] = useState(true); // New loading state for strategies
   const [tokenPrices, setTokenPrices] = useState<Record<string, number>>({});
   const [tokenMarketData, setTokenMarketData] = useState<Record<string, TokenMarketData>>({});
   const [token, setToken] = useState<string>('');
@@ -88,28 +92,48 @@ export default function DCABoard() {
     isOpen: false,
     token: '',
     usdcPerSwap: 0,
-    frequency: '',
-    takeProfit: 0
-  });
-  // State for user's USDC wallet balance
-  const [usdcWalletBalance, setUsdcWalletBalance] = useState<number>(0);
-  // State for activity items
-  const [activities, setActivities] = useState<Array<{
-    type: 'deposit' | 'createStrategy' | 'modifyStrategy' | 'deleteStrategy';
-    title: string;
-    description: string;
-    timestamp: number;
-    icon: string;
-  }>>([]);
-  // State for activity pagination
-  const [currentActivityPage, setCurrentActivityPage] = useState<number>(1);
-  const itemsPerPage = 6;
+    const [analysisModal, setAnalysisModal] = useState<{
+      isOpen: boolean;
+      token: string;
+      usdcPerSwap: number;
+      frequency: string;
+      takeProfit: number;
+    }>({
+      isOpen: false,
+      token: '',
+      usdcPerSwap: 0,
+      frequency: '',
+      takeProfit: 0
+    });
+    // State for success modal
+    const [successModal, setSuccessModal] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+    }>({
+      isOpen: false,
+      title: '',
+      message: ''
+    });
+    // State for user's USDC wallet balance
+    const [usdcWalletBalance, setUsdcWalletBalance] = useState<number>(0);
+    // State for activity items
+    const [activities, setActivities] = useState<Array<{
+      type: 'deposit' | 'createStrategy' | 'modifyStrategy' | 'deleteStrategy';
+      title: string;
+      description: string;
+      timestamp: number;
+      icon: string;
+    }>>([]);
+    // State for activity pagination
+    const [currentActivityPage, setCurrentActivityPage] = useState<number>(1);
+    const itemsPerPage = 6;
 
-  // Ref to track if component is mounted
-  const isMountedRef = useRef(true);
+    // Ref to track if component is mounted
+    const isMountedRef = useRef(true);
 
-  // Auto-expand first group when strategies change
-  useEffect(() => {
+    // Auto-expand first group when strategies change
+    useEffect(() => {
     if (strategies.length > 0 && expandedGroups.size === 0) {
       // Group strategies by token to find the first token
       const groupedStrategies = strategies.reduce((acc, strategy) => {
@@ -136,6 +160,7 @@ export default function DCABoard() {
     if (!address) {
       if (isMountedRef.current) {
         setStrategies([]);
+        setLoadingStrategies(false);
       }
       return;
     }
@@ -299,11 +324,13 @@ export default function DCABoard() {
 
       if (isMountedRef.current) {
         setStrategies(strategiesData);
+        setLoadingStrategies(false);
       }
 
     } catch (error) {
       if (isMountedRef.current) {
         setStrategies([]);
+        setLoadingStrategies(false);
       }
     }
   };
@@ -883,8 +910,16 @@ export default function DCABoard() {
       // Determine API URL based on network
       const apiUrl = getApiUrl(network);
 
-      // Fetch user's tokens
-      const tokensUrl = `${apiUrl}/accounts/${address}/tokens`;
+      // Determine specific USDC token ID based on network
+      let targetUsdcId = 'USDC-c76f1f'; // Default to mainnet
+      if (network.apiAddress.includes('devnet')) {
+        targetUsdcId = 'USDC-350c4e';
+      } else if (network.apiAddress.includes('testnet')) {
+        targetUsdcId = 'USDC-'; // Fallback for testnet
+      }
+
+      // Fetch user's tokens with higher limit to ensure we find USDC
+      const tokensUrl = `${apiUrl}/accounts/${address}/tokens?size=1000`;
       const response = await fetch(tokensUrl, {
         method: 'GET',
         headers: {
@@ -899,11 +934,31 @@ export default function DCABoard() {
 
       const tokensData = await response.json();
 
-      // Find USDC token (USDC-350c4e for devnet, might be different for other networks)
-      const usdcToken = tokensData.find((token: any) => {
+      // Find USDC token
+      // 1. Try to find exact match for the known USDC ID
+      let usdcToken = tokensData.find((token: any) => {
         const identifier = token.identifier || token.tokenIdentifier || '';
-        return identifier.startsWith('USDC-');
+        return identifier === targetUsdcId;
       });
+
+      // 2. If not found (e.g. testnet or different USDC), fall back to checking for "USDC-" prefix
+      // But sort to prefer the one with highest balance to avoid empty zombie tokens
+      if (!usdcToken) {
+        const usdcTokens = tokensData.filter((token: any) => {
+          const identifier = token.identifier || token.tokenIdentifier || '';
+          return identifier.startsWith('USDC-');
+        });
+
+        if (usdcTokens.length > 0) {
+          // Sort by balance descending
+          usdcTokens.sort((a: any, b: any) => {
+            const balA = parseFloat(a.balance || '0');
+            const balB = parseFloat(b.balance || '0');
+            return balB - balA;
+          });
+          usdcToken = usdcTokens[0];
+        }
+      }
 
       if (usdcToken) {
         // USDC has 6 decimals

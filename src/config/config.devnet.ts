@@ -7,3 +7,4 @@ export const contractAddress =
 export const API_URL = 'https://devnet-template-api.multiversx.com';
 export const sampleAuthenticatedDomains = [API_URL];
 export const environment = EnvironmentsEnum.devnet;
+export const USDC_TOKEN_ID = 'USDC-350c4e';
