@@ -688,6 +688,7 @@ export default function DCABoard() {
 
       try {
         setIsCreatingStrategy(true);
+        const loadingToast = toast.loading('Creating strategy...');
 
         const { sessionId } = await createStrategy(
           contractAddress,
@@ -704,11 +705,19 @@ export default function DCABoard() {
 
         // Wait for transaction success and then refetch
         const success = await waitForTransactionSuccess(sessionId);
+        toast.dismiss(loadingToast);
+
         if (success && isMountedRef.current) {
           refetchData();
+          setSuccessModal({
+            isOpen: true,
+            title: 'Strategy Created!',
+            message: 'Your DCA strategy has been successfully created and activated.'
+          });
         }
       } catch (error) {
-        alert(error instanceof Error ? error.message : 'Failed to create strategy');
+        toast.dismiss();
+        toast.error(error instanceof Error ? error.message : 'Failed to create strategy');
       } finally {
         setIsCreatingStrategy(false);
       }
@@ -739,6 +748,7 @@ export default function DCABoard() {
     try {
       setIsCreatingStrategy(true);
       setAnalysisModal({ isOpen: false, token: '', usdcPerSwap: 0, frequency: '', takeProfit: 0 });
+      const loadingToast = toast.loading('Creating strategy...');
 
       const { sessionId } = await createStrategy(
         contractAddress,
@@ -755,11 +765,19 @@ export default function DCABoard() {
 
       // Wait for transaction success and then refetch
       const success = await waitForTransactionSuccess(sessionId);
+      toast.dismiss(loadingToast);
+
       if (success && isMountedRef.current) {
         refetchData();
+        setSuccessModal({
+          isOpen: true,
+          title: 'Strategy Created!',
+          message: 'Your DCA strategy has been successfully created and activated.'
+        });
       }
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to create strategy');
+      toast.dismiss();
+      toast.error(error instanceof Error ? error.message : 'Failed to create strategy');
     } finally {
       setIsCreatingStrategy(false);
     }
