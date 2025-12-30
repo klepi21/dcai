@@ -38,17 +38,24 @@ export function FrequencyDropdown({
     return freq.replace(/[^\x20-\x7E]/g, '').trim().toLowerCase();
   };
 
+  // Filter out invalid frequencies (empty or only non-printable characters)
+  const validFrequencies = frequencies.filter(f => {
+    const sanitized = sanitizeFrequency(f);
+    return sanitized.length > 0; // Only keep frequencies with actual printable characters
+  });
+
   // Debug: Log the raw frequency data
   console.log('=== FREQUENCY DEBUG ===');
   console.log('Raw frequencies array:', frequencies);
+  console.log('Valid frequencies after filtering:', validFrequencies);
   console.log('Raw selectedFrequency:', selectedFrequency);
   console.log('selectedFrequency char codes:', selectedFrequency ? Array.from(selectedFrequency).map(c => `${c}(${c.charCodeAt(0)})`) : 'empty');
-  frequencies.forEach((f, i) => {
+  validFrequencies.forEach((f, i) => {
     console.log(`Frequency ${i}: "${f}" - char codes:`, Array.from(f).map(c => `${c}(${c.charCodeAt(0)})`));
   });
 
   const sanitizedSelectedFrequency = sanitizeFrequency(selectedFrequency);
-  const sanitizedFrequencies = frequencies.map(f => sanitizeFrequency(f));
+  const sanitizedFrequencies = validFrequencies.map(f => sanitizeFrequency(f));
 
   console.log('Sanitized selectedFrequency:', sanitizedSelectedFrequency);
   console.log('Sanitized frequencies:', sanitizedFrequencies);
@@ -59,12 +66,12 @@ export function FrequencyDropdown({
 
   // Find the original frequency value that matches (for display purposes)
   const matchingFrequency = isValidFrequency
-    ? frequencies[sanitizedFrequencies.indexOf(sanitizedSelectedFrequency)]
+    ? validFrequencies[sanitizedFrequencies.indexOf(sanitizedSelectedFrequency)]
     : '';
 
   const currentFrequencyDisplay = matchingFrequency
     ? getFrequencyDisplayName(matchingFrequency)
-    : (frequencies.length > 0 ? 'Select frequency' : 'No frequencies available');
+    : (validFrequencies.length > 0 ? 'Select frequency' : 'No frequencies available');
 
   return (
     <div className='relative'>
@@ -84,7 +91,7 @@ export function FrequencyDropdown({
             onClick={onToggle}
           />
           <div className='absolute z-20 mt-1 max-h-60 w-full overflow-auto border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] shadow-lg'>
-            {frequencies.map((freq) => {
+            {validFrequencies.map((freq) => {
               // Use sanitized comparison for accurate selection matching
               const sanitizedFreq = sanitizeFrequency(freq);
               const isSelected = sanitizedFreq === sanitizedSelectedFrequency;
