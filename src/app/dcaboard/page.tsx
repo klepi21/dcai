@@ -92,48 +92,38 @@ export default function DCABoard() {
     isOpen: false,
     token: '',
     usdcPerSwap: 0,
-    const [analysisModal, setAnalysisModal] = useState<{
-      isOpen: boolean;
-      token: string;
-      usdcPerSwap: number;
-      frequency: string;
-      takeProfit: number;
-    }>({
-      isOpen: false,
-      token: '',
-      usdcPerSwap: 0,
-      frequency: '',
-      takeProfit: 0
-    });
-    // State for success modal
-    const [successModal, setSuccessModal] = useState<{
-      isOpen: boolean;
-      title: string;
-      message: string;
-    }>({
-      isOpen: false,
-      title: '',
-      message: ''
-    });
-    // State for user's USDC wallet balance
-    const [usdcWalletBalance, setUsdcWalletBalance] = useState<number>(0);
-    // State for activity items
-    const [activities, setActivities] = useState<Array<{
-      type: 'deposit' | 'createStrategy' | 'modifyStrategy' | 'deleteStrategy';
-      title: string;
-      description: string;
-      timestamp: number;
-      icon: string;
-    }>>([]);
-    // State for activity pagination
-    const [currentActivityPage, setCurrentActivityPage] = useState<number>(1);
-    const itemsPerPage = 6;
+    frequency: '',
+    takeProfit: 0
+  });
+  // State for success modal
+  const [successModal, setSuccessModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    title: '',
+    message: ''
+  });
+  // State for user's USDC wallet balance
+  const [usdcWalletBalance, setUsdcWalletBalance] = useState<number>(0);
+  // State for activity items
+  const [activities, setActivities] = useState<Array<{
+    type: 'deposit' | 'createStrategy' | 'modifyStrategy' | 'deleteStrategy';
+    title: string;
+    description: string;
+    timestamp: number;
+    icon: string;
+  }>>([]);
+  // State for activity pagination
+  const [currentActivityPage, setCurrentActivityPage] = useState<number>(1);
+  const itemsPerPage = 6;
 
-    // Ref to track if component is mounted
-    const isMountedRef = useRef(true);
+  // Ref to track if component is mounted
+  const isMountedRef = useRef(true);
 
-    // Auto-expand first group when strategies change
-    useEffect(() => {
+  // Auto-expand first group when strategies change
+  useEffect(() => {
     if (strategies.length > 0 && expandedGroups.size === 0) {
       // Group strategies by token to find the first token
       const groupedStrategies = strategies.reduce((acc, strategy) => {
@@ -472,7 +462,7 @@ export default function DCABoard() {
     fetchUserDcaiTokens();
 
     // Cleanup function - only set to false if component actually unmounts
-    // Don't set to false on dependency changes, as that would prevent state updates
+    // Don&apos;t set to false on dependency changes, as that would prevent state updates
   }, [address, network.apiAddress, setups]); // Added setups to find matching dcaToken
 
   // Fetch activity AFTER strategies have been loaded
