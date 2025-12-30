@@ -31,7 +31,11 @@ export function FrequencyDropdown({
     );
   }
 
-  const currentFrequencyDisplay = selectedFrequency ? getFrequencyDisplayName(selectedFrequency) : 'Select frequency';
+  // Check if the selected frequency is valid (exists in the frequencies array)
+  const isValidFrequency = selectedFrequency && frequencies.includes(selectedFrequency);
+  const currentFrequencyDisplay = isValidFrequency
+    ? getFrequencyDisplayName(selectedFrequency)
+    : (frequencies.length > 0 ? 'Select frequency' : 'No frequencies available');
 
   return (
     <div className='relative'>
@@ -43,7 +47,7 @@ export function FrequencyDropdown({
         <span className='flex-1'>{currentFrequencyDisplay}</span>
         <span className='text-[hsl(var(--gray-300)/0.6)]'>▼</span>
       </button>
-      
+
       {isOpen && (
         <>
           <div
@@ -62,9 +66,8 @@ export function FrequencyDropdown({
                     onSelectFrequency(freq);
                     onToggle();
                   }}
-                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[hsl(var(--gray-300)/0.1)] ${
-                    isSelected ? 'bg-[hsl(var(--sky-300)/0.2)]' : ''
-                  }`}
+                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[hsl(var(--gray-300)/0.1)] ${isSelected ? 'bg-[hsl(var(--sky-300)/0.2)]' : ''
+                    }`}
                 >
                   <span className='flex-1'>
                     {isSelected && <span className='text-[hsl(var(--sky-300))]'>✓ </span>}
