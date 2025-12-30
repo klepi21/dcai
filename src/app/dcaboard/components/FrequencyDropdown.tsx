@@ -44,22 +44,8 @@ export function FrequencyDropdown({
     return sanitized.length > 0; // Only keep frequencies with actual printable characters
   });
 
-  // Debug: Log the raw frequency data
-  console.log('=== FREQUENCY DEBUG ===');
-  console.log('Raw frequencies array:', frequencies);
-  console.log('Valid frequencies after filtering:', validFrequencies);
-  console.log('Raw selectedFrequency:', selectedFrequency);
-  console.log('selectedFrequency char codes:', selectedFrequency ? Array.from(selectedFrequency).map(c => `${c}(${c.charCodeAt(0)})`) : 'empty');
-  validFrequencies.forEach((f, i) => {
-    console.log(`Frequency ${i}: "${f}" - char codes:`, Array.from(f).map(c => `${c}(${c.charCodeAt(0)})`));
-  });
-
   const sanitizedSelectedFrequency = sanitizeFrequency(selectedFrequency);
   const sanitizedFrequencies = validFrequencies.map(f => sanitizeFrequency(f));
-
-  console.log('Sanitized selectedFrequency:', sanitizedSelectedFrequency);
-  console.log('Sanitized frequencies:', sanitizedFrequencies);
-  console.log('======================');
 
   // Check if the selected frequency is valid (exists in the frequencies array)
   const isValidFrequency = sanitizedSelectedFrequency && sanitizedFrequencies.includes(sanitizedSelectedFrequency);
