@@ -38,8 +38,21 @@ export function FrequencyDropdown({
     return freq.replace(/[^\x20-\x7E]/g, '').trim().toLowerCase();
   };
 
+  // Debug: Log the raw frequency data
+  console.log('=== FREQUENCY DEBUG ===');
+  console.log('Raw frequencies array:', frequencies);
+  console.log('Raw selectedFrequency:', selectedFrequency);
+  console.log('selectedFrequency char codes:', selectedFrequency ? Array.from(selectedFrequency).map(c => `${c}(${c.charCodeAt(0)})`) : 'empty');
+  frequencies.forEach((f, i) => {
+    console.log(`Frequency ${i}: "${f}" - char codes:`, Array.from(f).map(c => `${c}(${c.charCodeAt(0)})`));
+  });
+
   const sanitizedSelectedFrequency = sanitizeFrequency(selectedFrequency);
   const sanitizedFrequencies = frequencies.map(f => sanitizeFrequency(f));
+
+  console.log('Sanitized selectedFrequency:', sanitizedSelectedFrequency);
+  console.log('Sanitized frequencies:', sanitizedFrequencies);
+  console.log('======================');
 
   // Check if the selected frequency is valid (exists in the frequencies array)
   const isValidFrequency = sanitizedSelectedFrequency && sanitizedFrequencies.includes(sanitizedSelectedFrequency);
@@ -84,13 +97,11 @@ export function FrequencyDropdown({
                     onSelectFrequency(freq);
                     onToggle();
                   }}
-                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[hsl(var(--gray-300)/0.1)] ${isSelected ? 'bg-[hsl(var(--sky-300)/0.2)]' : ''
+                  className={`flex w-full items-center px-3 py-2 text-left text-sm transition-colors hover:bg-[hsl(var(--gray-300)/0.1)] ${isSelected ? 'bg-[hsl(var(--sky-300)/0.2)]' : ''
                     }`}
                 >
-                  <span className='flex-1'>
-                    {isSelected && <span className='text-[hsl(var(--sky-300))]'>✓ </span>}
-                    {displayName}
-                  </span>
+                  {isSelected && <span className='text-[hsl(var(--sky-300))] mr-1'>✓</span>}
+                  {displayName}
                 </button>
               );
             })}
