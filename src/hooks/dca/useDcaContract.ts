@@ -99,15 +99,15 @@ export const useDcaContract = () => {
           gatewayUrl = 'https://gateway.multiversx.com';
         }
       }
-      
+
       const queryUrl = `${gatewayUrl}/vm-values/query`;
-      
+
       const requestBody = {
         scAddress: PARENT_CONTRACT_ADDRESS,
         funcName: 'getDcaContracts',
         args: []
       };
-      
+
       const response = await fetch(queryUrl, {
         method: 'POST',
         headers: {
@@ -123,7 +123,7 @@ export const useDcaContract = () => {
       }
 
       const data = await response.json();
-      
+
       // Check for errors in the response
       const responseData = data.data?.data;
       if (responseData) {
@@ -132,10 +132,10 @@ export const useDcaContract = () => {
           throw new Error(`Contract query error: ${errorMsg}`);
         }
       }
-      
+
       // The response structure is: data.data.returnData
       const returnData = data.data?.data?.returnData;
-      
+
       if (!returnData || returnData.length === 0) {
         const errorMsg = responseData?.returnMessage || responseData?.returnCode || 'No data returned';
         throw new Error(`Contract query failed: ${errorMsg}`);
@@ -149,14 +149,14 @@ export const useDcaContract = () => {
       // - BigUint (minAmountPerSwap)
       // - TokenIdentifier (strategyToken)
       // - variadic<multi<bytes,u64>> (allowedFrequencies - variable number of pairs)
-      
+
       const setupsList: DcaSetup[] = [];
       let i = 0;
-      
+
       while (i < returnData.length) {
         // Parse each DCA contract entry
         // Entry structure: address, dcaToken, minAmountPerSwap, strategyToken, freq1_name, freq1_duration, freq2_name, freq2_duration, ...
-        
+
         // 1. Address (Address - DCA contract address)
         const addressBase64 = returnData[i];
         const addressHex = addressBase64 ? base64ToHex(addressBase64) : '';
@@ -173,16 +173,16 @@ export const useDcaContract = () => {
           // Conversion failed, keep hex
         }
         i++;
-        
+
         if (i >= returnData.length) break;
-        
+
         // 2. DcaToken (EgldOrEsdtTokenIdentifier)
         const dcaTokenBase64 = returnData[i];
         const dcaToken = dcaTokenBase64 ? base64ToString(dcaTokenBase64) : 'EGLD';
         i++;
-        
+
         if (i >= returnData.length) break;
-        
+
         // 3. MinAmountPerSwap (BigUint)
         const minAmountBase64 = returnData[i];
         const minAmountHex = minAmountBase64 ? base64ToHex(minAmountBase64) : '0';
@@ -191,82 +191,65 @@ export const useDcaContract = () => {
         const minAmountUsdc = parseFloat(minAmountRaw) / usdcDecimals;
         const minAmountPerSwap = minAmountUsdc > 0 ? minAmountUsdc.toFixed(2) : '0.00';
         i++;
-        
+
         if (i >= returnData.length) break;
-        
+
         // 4. StrategyToken (TokenIdentifier)
         const strategyTokenBase64 = returnData[i];
         const strategyToken = strategyTokenBase64 ? base64ToString(strategyTokenBase64) : '';
         i++;
-        
+
         // 5. AllowedFrequencies (variadic<multi<bytes,u64>>)
         // This is a variable number of pairs, so we need to parse until we hit the next entry
         // The next entry starts with an Address (32 bytes, 64 hex chars)
         // Strategy: Parse frequency pairs, checking if the next value after a pair looks like an Address
         const allowedFrequencies: Array<{ frequency: string; duration: string }> = [];
-        
+
         while (i + 1 < returnData.length) {
+          // Check if the current item is the start of a new entry (Address)
+          // Address is 32 bytes = 64 hex characters
+          const currentItem = returnData[i];
+          const currentItemHex = currentItem ? base64ToHex(currentItem) : '';
+
+          if (currentItemHex.length === 64) {
+            // Found a new address, stop parsing frequencies for this entry
+            break;
+          }
+
           const freqBase64 = returnData[i];
           const durationBase64 = returnData[i + 1];
           const potentialFreq = freqBase64 ? base64ToString(freqBase64) : '';
           const potentialDurationHex = durationBase64 ? base64ToHex(durationBase64) : '0';
           const potentialDuration = hexToDecimal(potentialDurationHex);
-          
+
           // Check if this looks like a frequency pair
           // Frequency names are typically short strings without hyphens
           // Token identifiers are "EGLD" or contain hyphens like "WEGLD-d7c6bb"
-          const looksLikeFrequency = potentialFreq && 
-            potentialFreq.length > 0 && 
+          const looksLikeFrequency = potentialFreq &&
+            potentialFreq.length > 0 &&
             potentialFreq.length < 100 &&
             potentialFreq !== 'EGLD' &&
             !potentialFreq.match(/^[A-Z0-9]+-[a-f0-9]+$/i); // Not a token identifier pattern
-          
-          const looksLikeDuration = potentialDuration && 
-            parseFloat(potentialDuration) > 0 && 
+
+          const looksLikeDuration = potentialDuration &&
+            parseFloat(potentialDuration) > 0 &&
             parseFloat(potentialDuration) < 1000000000000000; // Reasonable duration in milliseconds
-          
-          // Check if the value after this pair looks like an Address (start of next entry)
-          // Address is 32 bytes, so when base64 decoded and converted to hex, it should be 64 hex characters
-          let looksLikeNextEntry = false;
-          if (i + 2 < returnData.length) {
-            const nextPotentialAddress = returnData[i + 2];
-            const nextAddressHex = nextPotentialAddress ? base64ToHex(nextPotentialAddress) : '';
-            // Address is 32 bytes = 64 hex characters
-            // If the next value is 64 hex chars, it's likely an Address (start of next entry)
-            if (nextAddressHex.length === 64) {
-              looksLikeNextEntry = true;
-            }
-          }
-          
-          if (looksLikeFrequency && looksLikeDuration && !looksLikeNextEntry) {
+
+          if (looksLikeFrequency && looksLikeDuration) {
             // This looks like a frequency pair
             allowedFrequencies.push({
               frequency: potentialFreq,
               duration: potentialDuration
             });
-            i += 2;
-          } else if (looksLikeFrequency && looksLikeDuration) {
-            // Even if it might be followed by a new entry, if it looks like a frequency, include it
-            // (it could be the last frequency of this entry)
-            allowedFrequencies.push({
-              frequency: potentialFreq,
-              duration: potentialDuration
-            });
-            i += 2;
-            // If the next value looks like an Address, we've reached the end of frequencies
-            if (i < returnData.length) {
-              const nextValue = returnData[i];
-              const nextValueHex = nextValue ? base64ToHex(nextValue) : '';
-              if (nextValueHex.length === 64) {
-                break; // Next entry starts here
-              }
-            }
-          } else {
-            // This doesn't look like a frequency pair, might be start of next entry
-            break;
           }
+
+          // Move to next pair regardless. 
+          // If it was valid, we consumed it. 
+          // If it was invalid (e.g. empty name), we skip it and try the next pair.
+          // Unless we hit an Address (checked at top of loop), we assume it's part of the frequency list (or garbage to skip).
+          i += 2;
         }
-        
+
         const parsedEntry = {
           address: addressBech32, // Store as bech32 format (erd1...)
           dcaToken: dcaToken || 'EGLD',
@@ -274,10 +257,10 @@ export const useDcaContract = () => {
           strategyToken,
           allowedFrequencies
         };
-        
+
         setupsList.push(parsedEntry);
       }
-      
+
       // Set the first setup as the default for backward compatibility
       if (setupsList.length > 0) {
         setSetup(setupsList[0]);
@@ -312,10 +295,10 @@ export const useDcaContract = () => {
       }
 
       const queryUrl = `${gatewayUrl}/vm-values/query`;
-      
+
       // Encode nonce as u64 (hex)
       const nonceArg = encodeU64(nonce);
-      
+
       const requestBody = {
         scAddress: contractAddress, // Use the owner address from the token (the contract that owns this strategy)
         funcName: 'getStrategyTokenAttributes',
@@ -337,7 +320,7 @@ export const useDcaContract = () => {
       }
 
       const data = await response.json();
-      
+
       const responseData = data.data?.data;
       if (responseData) {
         if (responseData.returnCode && responseData.returnCode !== 'ok') {
@@ -345,9 +328,9 @@ export const useDcaContract = () => {
           throw new Error(`Contract query error: ${errorMsg}`);
         }
       }
-      
+
       const returnData = data.data?.data?.returnData;
-      
+
       if (!returnData || returnData.length < 10) {
         throw new Error('Invalid response: insufficient data returned (expected 10 values)');
       }
@@ -392,7 +375,7 @@ export const useDcaContract = () => {
       // Note: Both usdc_length and token_length are u32 (4 bytes), NOT 1 byte!
       const parseSwapList = (listData: any, listName: string): Swap[] => {
         const swaps: Swap[] = [];
-        
+
         if (!listData || (typeof listData === 'string' && listData === '')) {
           return swaps;
         }
@@ -402,7 +385,7 @@ export const useDcaContract = () => {
           if (typeof listData !== 'string') {
             return swaps;
           }
-          
+
           // Decode base64 to bytes
           const bytes = Uint8Array.from(Buffer.from(listData, 'base64'));
 
@@ -474,12 +457,12 @@ export const useDcaContract = () => {
             // Read timestamp as big-endian u64
             let timestamp = BigInt(0);
             const timestampBytes = bytes.slice(offset, offset + 8);
-            
+
             // Read the bytes (most significant bytes first, big-endian)
             for (let j = 0; j < 8; j++) {
               timestamp = (timestamp << BigInt(8)) | BigInt(timestampBytes[j]);
             }
-            
+
             const timestampMillis = timestamp.toString();
             offset += 8;
 

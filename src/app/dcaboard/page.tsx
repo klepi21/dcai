@@ -54,11 +54,11 @@ export default function DCABoard() {
     amount: ''
   });
   // State for modify strategy modal
-  const [modifyModal, setModifyModal] = useState<{ 
-    isOpen: boolean; 
-    strategyId: string | null; 
-    amountPerDca: string; 
-    frequency: string; 
+  const [modifyModal, setModifyModal] = useState<{
+    isOpen: boolean;
+    strategyId: string | null;
+    amountPerDca: string;
+    frequency: string;
     takeProfitPct: string;
     showTakeProfit: boolean;
   }>({
@@ -70,8 +70,8 @@ export default function DCABoard() {
     showTakeProfit: false
   });
   // State for delete confirmation modal
-  const [deleteModal, setDeleteModal] = useState<{ 
-    isOpen: boolean; 
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
     strategyId: string | null;
   }>({
     isOpen: false,
@@ -104,10 +104,10 @@ export default function DCABoard() {
   // State for activity pagination
   const [currentActivityPage, setCurrentActivityPage] = useState<number>(1);
   const itemsPerPage = 6;
-  
+
   // Ref to track if component is mounted
   const isMountedRef = useRef(true);
-  
+
   // Auto-expand first group when strategies change
   useEffect(() => {
     if (strategies.length > 0 && expandedGroups.size === 0) {
@@ -120,7 +120,7 @@ export default function DCABoard() {
         acc[token].push(strategy);
         return acc;
       }, {} as Record<string, typeof strategies>);
-      
+
       const firstToken = Object.keys(groupedStrategies)[0];
       if (firstToken) {
         setExpandedGroups(new Set([firstToken]));
@@ -146,7 +146,7 @@ export default function DCABoard() {
 
       // ONE API call to get all Meta ESDT tokens
       const tokensUrl = `${apiUrl}/accounts/${address}/tokens?includeMetaESDT=true`;
-      
+
       const response = await fetch(tokensUrl, {
         method: 'GET',
         headers: {
@@ -159,7 +159,7 @@ export default function DCABoard() {
       }
 
       const tokensData = await response.json();
-      
+
       // Filter tokens that start with "DCAI"
       const dcaiTokens = tokensData.filter((token: any) => {
         const identifier = token.identifier || token.tokenIdentifier || '';
@@ -168,17 +168,17 @@ export default function DCABoard() {
 
       // Fetch strategy attributes for each DCAI token with 0.35s delay between calls
       const strategiesData: DcaStrategy[] = [];
-      
+
       for (let i = 0; i < dcaiTokens.length; i++) {
         if (!isMountedRef.current) break; // Stop if component unmounted
-        
+
         try {
           const dcaiToken = dcaiTokens[i];
           // Extract nonce from token - use the nonce field directly (it's already in decimal)
           // or fallback to parsing from identifier if nonce field is not available
           const identifier = dcaiToken.identifier || dcaiToken.tokenIdentifier || '';
           let nonce: number;
-          
+
           if (dcaiToken.nonce !== undefined && dcaiToken.nonce !== null) {
             // Use the nonce field directly (already in decimal format)
             nonce = typeof dcaiToken.nonce === 'string' ? parseInt(dcaiToken.nonce, 10) : dcaiToken.nonce;
@@ -193,7 +193,7 @@ export default function DCABoard() {
               continue; // Skip this token if we can't parse nonce
             }
           }
-          
+
           if (isNaN(nonce) || nonce === 0) {
             continue; // Skip nonce 0 (invalid strategy token)
           }
@@ -214,7 +214,7 @@ export default function DCABoard() {
           // Extract token info before calling queryGetStrategyTokenAttributes
           const collection = dcaiToken.collection || '';
           const tokenTicker = collection.split('-')[0]?.replace('DCAI', '') || identifier.split('-')[0]?.replace('DCAI', '') || 'UNKNOWN';
-          
+
           // Use the owner address as the contract address for this strategy
           const attributes = await queryGetStrategyTokenAttributes(nonce, contractAddress, {
             identifier,
@@ -222,54 +222,54 @@ export default function DCABoard() {
             ticker: tokenTicker,
             decimals: dcaiToken.decimals
           });
-          
+
           if (!isMountedRef.current) break; // Check after async call
-          
+
           if (attributes) {
-          // Get network path for token images
-          const networkPathForImages = getNetworkPath(network);
-          
-          // Find the setup that matches this token ticker to get the correct dcaToken for the image
-          const matchingSetup = setups?.find(s => {
-            const setupTicker = s.dcaToken.split('-')[0];
-            return setupTicker === tokenTicker;
-          });
-          
-          // Try to find the token in the tokens array (which has full identifiers with hash)
-          const tokenFromList = tokens.find(t => {
-            const tTicker = t.ticker || t.identifier?.split('-')[0];
-            return tTicker === tokenTicker;
-          });
-          
-          // Special case for WEGLD - use the correct identifier
-          let iconIdentifier: string;
-          if (tokenTicker === 'WEGLD') {
-            iconIdentifier = 'WEGLD-bd4d79';
-          } else {
-            // Use dcaToken from matching setup, or token identifier from tokens list, or fallback to ticker
-            iconIdentifier = matchingSetup?.dcaToken || tokenFromList?.identifier || (tokenTicker !== 'UNKNOWN' ? tokenTicker : collection);
-          }
-          
-          // Convert USDC balance from smallest units (6 decimals) to readable format
-          const usdcDecimals = 1000000; // 10^6
-          const usdcBalance = parseFloat(attributes.usdcBalance) / usdcDecimals;
-          
-          // Convert token balance (assuming 18 decimals for wrapped tokens, but check token decimals)
-          const tokenDecimals = dcaiToken.decimals || 18;
-          const tokenDecimalsMultiplier = 10 ** tokenDecimals;
-          const tokenBalance = parseFloat(attributes.tokenBalance) / tokenDecimalsMultiplier;
-          
-          // Convert amount per swap from smallest units to readable format
-          const amountPerSwap = parseFloat(attributes.amountPerSwap) / usdcDecimals;
-          
-          // Parse take profit percentage (it's a u64, stored with 3 decimal places)
-          // e.g., 20000 = 20%, so divide by 1000 to get percentage
-          const takeProfitPct = parseFloat(attributes.takeProfitPercentage);
-          const takeProfitPercentage = takeProfitPct > 0 ? takeProfitPct / 1000 : 0;
-          
-          // Convert last executed timestamp from milliseconds to human-readable format
-          const lastExecutedTsMillis = attributes.lastExecutedTsMillis;
-          
+            // Get network path for token images
+            const networkPathForImages = getNetworkPath(network);
+
+            // Find the setup that matches this token ticker to get the correct dcaToken for the image
+            const matchingSetup = setups?.find(s => {
+              const setupTicker = s.dcaToken.split('-')[0];
+              return setupTicker === tokenTicker;
+            });
+
+            // Try to find the token in the tokens array (which has full identifiers with hash)
+            const tokenFromList = tokens.find(t => {
+              const tTicker = t.ticker || t.identifier?.split('-')[0];
+              return tTicker === tokenTicker;
+            });
+
+            // Special case for WEGLD - use the correct identifier
+            let iconIdentifier: string;
+            if (tokenTicker === 'WEGLD') {
+              iconIdentifier = 'WEGLD-bd4d79';
+            } else {
+              // Use dcaToken from matching setup, or token identifier from tokens list, or fallback to ticker
+              iconIdentifier = matchingSetup?.dcaToken || tokenFromList?.identifier || (tokenTicker !== 'UNKNOWN' ? tokenTicker : collection);
+            }
+
+            // Convert USDC balance from smallest units (6 decimals) to readable format
+            const usdcDecimals = 1000000; // 10^6
+            const usdcBalance = parseFloat(attributes.usdcBalance) / usdcDecimals;
+
+            // Convert token balance (assuming 18 decimals for wrapped tokens, but check token decimals)
+            const tokenDecimals = dcaiToken.decimals || 18;
+            const tokenDecimalsMultiplier = 10 ** tokenDecimals;
+            const tokenBalance = parseFloat(attributes.tokenBalance) / tokenDecimalsMultiplier;
+
+            // Convert amount per swap from smallest units to readable format
+            const amountPerSwap = parseFloat(attributes.amountPerSwap) / usdcDecimals;
+
+            // Parse take profit percentage (it's a u64, stored with 3 decimal places)
+            // e.g., 20000 = 20%, so divide by 1000 to get percentage
+            const takeProfitPct = parseFloat(attributes.takeProfitPercentage);
+            const takeProfitPercentage = takeProfitPct > 0 ? takeProfitPct / 100 : 0;
+
+            // Convert last executed timestamp from milliseconds to human-readable format
+            const lastExecutedTsMillis = attributes.lastExecutedTsMillis;
+
             const strategy: DcaStrategy = {
               id: `${identifier}-${nonce}`, // Use identifier-nonce as unique ID
               token: tokenTicker,
@@ -287,7 +287,7 @@ export default function DCABoard() {
               buys: attributes.buys || [],
               sells: attributes.sells || []
             };
-            
+
             strategiesData.push(strategy);
           }
         } catch (error) {
@@ -296,7 +296,7 @@ export default function DCABoard() {
           continue;
         }
       }
-      
+
       if (isMountedRef.current) {
         setStrategies(strategiesData);
       }
@@ -364,7 +364,7 @@ export default function DCABoard() {
               timestamp = timestamp * 1000;
             }
             const transfersList = transfer.action.arguments.transfers || [];
-            
+
             let title = '';
             let description = '';
             let icon = '';
@@ -373,7 +373,7 @@ export default function DCABoard() {
               // Find USDC transfer
               const usdcTransfer = transfersList.find((t: any) => t.ticker === 'USDC' || t.token?.startsWith('USDC-'));
               const metaEsdtTransfer = transfersList.find((t: any) => t.type === 'MetaESDT');
-              
+
               if (usdcTransfer) {
                 const usdcAmount = parseFloat(usdcTransfer.value || '0') / 1000000; // USDC has 6 decimals
                 const tokenName = metaEsdtTransfer?.name?.replace('DCAi', '') || metaEsdtTransfer?.ticker?.replace('DCAI', '') || 'token';
@@ -443,7 +443,7 @@ export default function DCABoard() {
     // Reset mounted ref when effect runs
     isMountedRef.current = true;
     fetchUserDcaiTokens();
-    
+
     // Cleanup function - only set to false if component actually unmounts
     // Don't set to false on dependency changes, as that would prevent state updates
   }, [address, network.apiAddress, setups]); // Added setups to find matching dcaToken
@@ -456,11 +456,11 @@ export default function DCABoard() {
       const timeoutId = setTimeout(() => {
         fetchActivity();
       }, 500);
-      
+
       return () => clearTimeout(timeoutId);
     }
   }, [address, loadingSetup, setups, strategies.length]);
-  
+
   // Reset mounted ref when component mounts
   useEffect(() => {
     isMountedRef.current = true;
@@ -488,24 +488,24 @@ export default function DCABoard() {
 
       // Fetch tokens from MultiversX API
       const response = await fetch(`${apiUrl}/tokens?size=300`);
-      
+
       if (!response.ok) {
         return;
       }
 
       const data = await response.json();
       const apiTokens = Array.isArray(data) ? data : (data.data || []);
-      
+
       // Create a map of token identifier to price
       const prices: Record<string, number> = {};
       const marketData: Record<string, TokenMarketData> = {};
-      
+
       tokensToFetch.forEach(tokenToFetch => {
-        const token = apiTokens.find((t: any) => 
+        const token = apiTokens.find((t: any) =>
           t.identifier === tokenToFetch.identifier ||
           t.identifier?.toLowerCase() === tokenToFetch.identifier?.toLowerCase()
         );
-        
+
         if (token) {
           const priceValue = token.price || token.priceUsd || token.priceUSD;
           if (priceValue !== undefined && priceValue !== null) {
@@ -514,7 +514,7 @@ export default function DCABoard() {
               prices[tokenToFetch.identifier] = parsedPrice;
             }
           }
-          
+
           // Store market data
           const liquidity = token.totalLiquidity ? parseFloat(token.totalLiquidity) : null;
           const volume24h = token.totalVolume24h ? parseFloat(token.totalVolume24h) : null;
@@ -525,7 +525,7 @@ export default function DCABoard() {
           };
         }
       });
-      
+
       setTokenPrices(prices);
       setTokenMarketData(marketData);
     } catch (error) {
@@ -548,12 +548,12 @@ export default function DCABoard() {
     if (setups && setups.length > 0) {
       try {
         setLoadingTokens(true);
-        
+
         // Build token list from all DCA contracts
         // Each setup has a dcaToken (the token to DCA into)
         const contractTokens: MultiversXToken[] = [];
         const seenTokens = new Set<string>();
-        
+
         // Add all unique dcaTokens from all setups
         const networkPath = getNetworkPath(network);
         setups.forEach((setupItem) => {
@@ -561,19 +561,19 @@ export default function DCABoard() {
           if (dcaTokenIdentifier && !seenTokens.has(dcaTokenIdentifier)) {
             seenTokens.add(dcaTokenIdentifier);
             const tokenTicker = dcaTokenIdentifier.split('-')[0] || dcaTokenIdentifier;
-            
+
             // Skip tokens with numeric-only tickers (invalid token identifiers)
             // A valid token ticker should contain at least one letter
             if (/^\d+$/.test(tokenTicker)) {
               return; // Skip this token
             }
-            
+
             // Special handling for EGLD - use CoinMarketCap image
             const isEGLD = dcaTokenIdentifier === 'EGLD';
-            const iconUrl = isEGLD 
+            const iconUrl = isEGLD
               ? 'https://s2.coinmarketcap.com/static/img/coins/200x200/6892.png'
               : `https://tools.multiversx.com/assets-cdn/${networkPath}/tokens/${dcaTokenIdentifier}/icon.png`;
-            
+
             contractTokens.push({
               identifier: dcaTokenIdentifier,
               name: tokenTicker,
@@ -586,17 +586,17 @@ export default function DCABoard() {
             });
           }
         });
-        
+
         setTokens(contractTokens);
-        
+
         // Fetch prices for all tokens
         fetchTokenPrices(contractTokens);
-        
+
         // Set default token
         if (contractTokens.length > 0 && !token) {
           setToken(contractTokens[0].identifier || contractTokens[0].ticker);
         }
-        
+
         // Update frequency and min amount when token changes
         // Find the setup that matches the selected token
         const selectedSetup = setups.find(s => s.dcaToken === token) || setup;
@@ -607,19 +607,45 @@ export default function DCABoard() {
               setFrequency(selectedSetup.allowedFrequencies[0].frequency);
             }
           }
-          
+
           // Set default amount to 1 USDC (not the minimum)
           if (!amountPerDca) {
             setAmountPerDca('1.00');
           }
         }
-        
+
       } catch (error) {
       } finally {
         setLoadingTokens(false);
       }
     }
   }, [setups, setup, loadingSetup, setupError, token, frequency, amountPerDca]);
+
+  // Helper to refetch data multiple times to handle propagation delays
+  const refetchData = () => {
+    if (!isMountedRef.current) return;
+
+    // Immediate fetch
+    fetchUserDcaiTokens();
+
+    // Fetch activity shortly after
+    setTimeout(() => {
+      if (isMountedRef.current) fetchActivity();
+    }, 1000);
+
+    // Retry fetching tokens after 2s and 5s
+    setTimeout(() => {
+      if (isMountedRef.current) fetchUserDcaiTokens();
+    }, 2000);
+
+    setTimeout(() => {
+      if (isMountedRef.current) {
+        fetchUserDcaiTokens();
+        fetchActivity(); // Check activity again too
+      }
+    }, 5000);
+  };
+
 
   const handleAddStrategy = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -642,10 +668,10 @@ export default function DCABoard() {
     // If form was modified by AI, skip analysis and create strategy directly
     if (isAiModified) {
       const contractAddress = selectedSetup.address;
-      
+
       try {
         setIsCreatingStrategy(true);
-        
+
         const { sessionId } = await createStrategy(
           contractAddress,
           parsedAmount,
@@ -658,15 +684,11 @@ export default function DCABoard() {
         setShowTakeProfit(false);
         setTakeProfitPct('15');
         setIsAiModified(false);
-        
+
         // Wait for transaction success and then refetch
         const success = await waitForTransactionSuccess(sessionId);
         if (success && isMountedRef.current) {
-          fetchUserDcaiTokens();
-          // Refetch activity after a short delay
-          setTimeout(() => {
-            fetchActivity();
-          }, 1000);
+          refetchData();
         }
       } catch (error) {
         alert(error instanceof Error ? error.message : 'Failed to create strategy');
@@ -700,7 +722,7 @@ export default function DCABoard() {
     try {
       setIsCreatingStrategy(true);
       setAnalysisModal({ isOpen: false, token: '', usdcPerSwap: 0, frequency: '', takeProfit: 0 });
-      
+
       const { sessionId } = await createStrategy(
         contractAddress,
         parsedAmount,
@@ -713,15 +735,11 @@ export default function DCABoard() {
       setShowTakeProfit(false);
       setTakeProfitPct('15');
       setIsAiModified(false);
-      
+
       // Wait for transaction success and then refetch
       const success = await waitForTransactionSuccess(sessionId);
       if (success && isMountedRef.current) {
-        fetchUserDcaiTokens();
-        // Refetch activity after a short delay
-        setTimeout(() => {
-          fetchActivity();
-        }, 1000);
+        refetchData();
       }
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to create strategy');
@@ -733,7 +751,7 @@ export default function DCABoard() {
   const handleModifyStrategyAfterAnalysis = (suggestions: string[], suggestedParams?: { usdc_per_swap?: number | null; frequency?: string | null; take_profit?: number | null }) => {
     if (!suggestedParams) {
       // Fallback: just show suggestions
-      const suggestionsText = suggestions.length > 0 
+      const suggestionsText = suggestions.length > 0
         ? suggestions.join('\n• ')
         : 'No specific suggestions provided.';
       alert(`LLM Suggestions:\n\n• ${suggestionsText}\n\nPlease review and adjust your strategy parameters manually.`);
@@ -790,8 +808,8 @@ export default function DCABoard() {
       return; // Validation handled in UI
     }
 
-    const takeProfitPct = modifyModal.showTakeProfit && modifyModal.takeProfitPct 
-      ? parseFloat(modifyModal.takeProfitPct) 
+    const takeProfitPct = modifyModal.showTakeProfit && modifyModal.takeProfitPct
+      ? parseFloat(modifyModal.takeProfitPct)
       : 0;
 
     try {
@@ -803,15 +821,11 @@ export default function DCABoard() {
         strategy.tokenIdentifier
       );
       setModifyModal({ isOpen: false, strategyId: null, amountPerDca: '', frequency: '', takeProfitPct: '', showTakeProfit: false });
-      
+
       // Wait for transaction success and then refetch
       const success = await waitForTransactionSuccess(sessionId);
       if (success && isMountedRef.current) {
-        fetchUserDcaiTokens();
-        // Refetch activity after a short delay
-        setTimeout(() => {
-          fetchActivity();
-        }, 1000);
+        refetchData();
       }
     } catch (error) {
       // Error handling is done by the transaction system
@@ -842,15 +856,11 @@ export default function DCABoard() {
     try {
       const { sessionId } = await deleteStrategy(strategy.contractAddress, strategy.tokenIdentifier);
       setDeleteModal({ isOpen: false, strategyId: null });
-      
+
       // Wait for transaction success and then refetch
       const success = await waitForTransactionSuccess(sessionId);
       if (success && isMountedRef.current) {
-        fetchUserDcaiTokens();
-        // Refetch activity after a short delay
-        setTimeout(() => {
-          fetchActivity();
-        }, 1000);
+        refetchData();
       }
     } catch (error) {
       // Error handling is done by the transaction system
@@ -888,7 +898,7 @@ export default function DCABoard() {
       }
 
       const tokensData = await response.json();
-      
+
       // Find USDC token (USDC-350c4e for devnet, might be different for other networks)
       const usdcToken = tokensData.find((token: any) => {
         const identifier = token.identifier || token.tokenIdentifier || '';
@@ -930,15 +940,15 @@ export default function DCABoard() {
 
       try {
         const transactionsStatus = getActiveTransactionsStatus();
-        
+
         // Check if transaction is no longer in active transactions (completed)
         // If it's not in the active list, it means it completed (success or failed)
         // We'll check by looking for the sessionId in the status object
-        const hasTransaction = transactionsStatus && 
-          Object.values(transactionsStatus).some((tx: any) => 
+        const hasTransaction = transactionsStatus &&
+          Object.values(transactionsStatus).some((tx: any) =>
             tx && (tx.sessionId === sessionId || (Array.isArray(tx) && tx.some((t: any) => t?.sessionId === sessionId)))
           );
-        
+
         // If transaction is no longer active, it completed
         // We assume success if it's no longer in active transactions
         // (TransactionManager removes successful transactions from active list)
@@ -977,15 +987,11 @@ export default function DCABoard() {
     try {
       const { sessionId } = await deposit(strategy.contractAddress, amount, strategy.tokenIdentifier);
       setDepositModal({ isOpen: false, strategyId: null, amount: '' });
-      
+
       // Wait for transaction success and then refetch
       const success = await waitForTransactionSuccess(sessionId);
       if (success && isMountedRef.current) {
-        fetchUserDcaiTokens();
-        // Refetch activity after a short delay
-        setTimeout(() => {
-          fetchActivity();
-        }, 1000);
+        refetchData();
       }
     } catch (error) {
       // Error handling is done by the transaction system
@@ -1023,15 +1029,11 @@ export default function DCABoard() {
     try {
       const { sessionId } = await withdraw(strategy.contractAddress, amount, withdrawModal.asset, strategy.tokenIdentifier);
       setWithdrawModal({ isOpen: false, strategyId: null, asset: null, amount: '' });
-      
+
       // Wait for transaction success and then refetch
       const success = await waitForTransactionSuccess(sessionId);
       if (success && isMountedRef.current) {
-        fetchUserDcaiTokens();
-        // Refetch activity after a short delay
-        setTimeout(() => {
-          fetchActivity();
-        }, 1000);
+        refetchData();
       }
     } catch (error) {
       // Error handling is done by the transaction system
@@ -1048,12 +1050,12 @@ export default function DCABoard() {
   const totalPortfolio = strategies.reduce((sum, s) => {
     const usdcValue = s.availableUsdc;
     let tokenValue = 0;
-    
+
     // Calculate USD value of token balance if price is available
     if (s.dcaTokenIdentifier && tokenPrices[s.dcaTokenIdentifier]) {
       tokenValue = s.tokenBalance * tokenPrices[s.dcaTokenIdentifier];
     }
-    
+
     return sum + usdcValue + tokenValue;
   }, 0);
 

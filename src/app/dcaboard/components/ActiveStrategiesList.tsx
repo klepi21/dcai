@@ -10,11 +10,11 @@ import { SellsModal } from './modals/SellsModal';
 // Component to display token price
 function TokenPriceDisplay({ tokenIdentifier, tokenPrices }: { tokenIdentifier: string; tokenPrices: Record<string, number> }) {
   const price = tokenPrices[tokenIdentifier];
-  
+
   if (price !== undefined && price !== null && !isNaN(price)) {
     return <span className='text-xs text-[hsl(var(--gray-300)/0.7)] ml-1'>(${price.toFixed(4)})</span>;
   }
-  
+
   return null;
 }
 
@@ -205,13 +205,13 @@ export function ActiveStrategiesList({
                     <div className='flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs'>
                       <AlertTriangle className='w-4 h-4 text-yellow-500 flex-shrink-0' />
                       <span className='text-yellow-600 dark:text-yellow-400'>
-                        {currentStrategy.availableUsdc === 0 
+                        {currentStrategy.availableUsdc === 0
                           ? 'Deposit USDC to activate DCA for this strategy'
                           : `Deposit at least $${(currentStrategy.amountPerDca - currentStrategy.availableUsdc).toFixed(2)} more USDC to activate DCA`}
                       </span>
                     </div>
                   )}
-                  
+
                   <div className='flex flex-col gap-2 border-t border-[hsl(var(--gray-300)/0.2)] pt-3'>
                     <div className='flex items-center justify-between text-xs'>
                       <span className='text-[hsl(var(--gray-300)/0.7)]'>Available USDC</span>
@@ -230,17 +230,17 @@ export function ActiveStrategiesList({
                         )}
                       </span>
                     </div>
-                    
+
                     {currentStrategy.takeProfitPct !== undefined && (
                       <div className='flex items-center justify-between text-xs'>
                         <span className='text-[hsl(var(--gray-300)/0.7)]'>Take-profit</span>
                         <span className='font-medium'>{currentStrategy.takeProfitPct.toFixed(1)}%</span>
                       </div>
                     )}
-                    
+
                     {currentStrategy.lastExecutedTsMillis && parseFloat(currentStrategy.lastExecutedTsMillis) > 0 && (
                       <div className='flex items-center justify-between text-xs'>
-                        <span className='text-[hsl(var(--gray-300)/0.7)]'>Last DCA</span>
+                        <span className='text-[hsl(var(--gray-300)/0.7)]'>Last Action</span>
                         <span className='font-medium'>
                           {formatLastDca(currentStrategy.lastExecutedTsMillis)}
                         </span>

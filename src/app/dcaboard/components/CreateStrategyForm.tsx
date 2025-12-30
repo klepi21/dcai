@@ -59,7 +59,7 @@ export function CreateStrategyForm({
   const selectedSetup = setups?.find(s => s.dcaToken === token) || setup;
   const frequencies = selectedSetup && selectedSetup.allowedFrequencies && selectedSetup.allowedFrequencies.length > 0
     ? selectedSetup.allowedFrequencies.map(freq => freq.frequency)
-    : ['hourly', 'daily', 'weekly', 'monthly'];
+    : [];
 
   const handleTokenSelect = (newToken: string) => {
     onTokenChange(newToken);
@@ -154,7 +154,7 @@ export function CreateStrategyForm({
             {showTakeProfit ? '−' : '+'}
           </span>
         </button>
-        
+
         {showTakeProfit && (
           <div className='flex flex-col gap-1 border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-3'>
             <input

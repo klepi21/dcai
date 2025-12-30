@@ -34,8 +34,8 @@ export const useModifyStrategy = () => {
       const usdcDecimals = 1000000; // 10^6
       const amountPerSwapInSmallestUnits = BigInt(Math.floor(amountPerSwap * usdcDecimals));
 
-      // Convert take profit percentage to basis points (multiply by 1000, e.g., 20% = 20000)
-      const takeProfitBasisPoints = BigInt(Math.floor(takeProfitPercentage * 1000));
+      // Convert take profit percentage to basis points (multiply by 100, e.g., 20% = 2000)
+      const takeProfitBasisPoints = BigInt(Math.floor(takeProfitPercentage * 100));
 
       // Capitalize frequency to match smart contract expectations (e.g., "hourly" -> "Hourly")
       const capitalizedFrequency = frequency.charAt(0).toUpperCase() + frequency.slice(1).toLowerCase();
@@ -53,33 +53,33 @@ export const useModifyStrategy = () => {
       // Format: MultiESDTNFTTransfer@receiver_hex@num_tokens@token_hex@nonce_hex@amount_hex@function_name_hex@arg1_hex@arg2_hex@arg3_hex
       const contractAddressObj = new Address(contractAddress);
       const contractAddressHex = contractAddressObj.toHex();
-      
+
       const collectionHex = Buffer.from(collection).toString('hex').toUpperCase();
       let nonceHexPadded = nonceHex.toUpperCase();
       if (nonceHexPadded.length % 2 !== 0) {
         nonceHexPadded = '0' + nonceHexPadded;
       }
       const metaEsdtAmountHex = '01'; // Send 1 MetaESDT token
-      
+
       // Encode function name
       const functionNameHex = Buffer.from('modifyStrategy').toString('hex');
-      
+
       // Encode arguments
       // arg1: amount_per_swap (BigUint as hex)
       let amountPerSwapHex = amountPerSwapInSmallestUnits.toString(16).toUpperCase();
       if (amountPerSwapHex.length % 2 !== 0) {
         amountPerSwapHex = '0' + amountPerSwapHex;
       }
-      
+
       // arg2: frequency (bytes as hex)
       const frequencyArgHex = frequencyHex;
-      
+
       // arg3: take_profit_percentage (u64 as hex)
       let takeProfitHex = takeProfitBasisPoints.toString(16).toUpperCase();
       if (takeProfitHex.length % 2 !== 0) {
         takeProfitHex = '0' + takeProfitHex;
       }
-      
+
       // Build the MultiESDTNFTTransfer data field
       // @receiver@num_tokens@token@nonce@amount@function@arg1@arg2@arg3
       const multiTransferData = `MultiESDTNFTTransfer@${contractAddressHex}@01@${collectionHex}@${nonceHexPadded}@${metaEsdtAmountHex}@${functionNameHex}@${amountPerSwapHex}@${frequencyArgHex}@${takeProfitHex}`;

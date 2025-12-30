@@ -60,7 +60,7 @@ export const useCreateStrategy = () => {
     // frequency is bytes type, so pass as string (SDK will encode it)
     // take_profit_percentage is required (u64), use 0 if not provided
     const takeProfitBasisPoints = takeProfitPercentage !== undefined && takeProfitPercentage > 0
-      ? BigInt(Math.floor(takeProfitPercentage * 1000)) // Convert percentage to basis points (multiply by 1000)
+      ? BigInt(Math.floor(takeProfitPercentage * 100)) // Convert percentage to basis points (multiply by 100)
       : BigInt(0); // Use 0 if not provided (e.g., 15% -> 15000 basis points)
 
     const args: any[] = [

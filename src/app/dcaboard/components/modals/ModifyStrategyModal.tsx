@@ -47,12 +47,12 @@ export function ModifyStrategyModal({
 
   const parsedAmountPerDca = parseFloat(amountPerDca);
   const isValidAmount = !isNaN(parsedAmountPerDca) && parsedAmountPerDca > 0;
-  
+
   const minAmount = strategySetup ? parseFloat(strategySetup.minAmountPerSwap) : 0;
   const isValidAmountWithMin = isValidAmount && parsedAmountPerDca >= minAmount;
 
-  const parsedTakeProfitPct = showTakeProfit && takeProfitPct 
-    ? parseFloat(takeProfitPct) 
+  const parsedTakeProfitPct = showTakeProfit && takeProfitPct
+    ? parseFloat(takeProfitPct)
     : 0;
   const isValidTakeProfit = !showTakeProfit || (parsedTakeProfitPct >= 0 && parsedTakeProfitPct <= 100);
 
@@ -60,7 +60,7 @@ export function ModifyStrategyModal({
 
   const frequencies = strategySetup && strategySetup.allowedFrequencies && strategySetup.allowedFrequencies.length > 0
     ? strategySetup.allowedFrequencies.map(freq => freq.frequency)
-    : ['hourly', 'daily', 'weekly', 'monthly'];
+    : [];
 
   return (
     <div
@@ -115,7 +115,7 @@ export function ModifyStrategyModal({
             />
             {amountPerDca && !isValidAmountWithMin && (
               <p className='text-xs text-red-500'>
-                {!isValidAmount 
+                {!isValidAmount
                   ? 'Please enter a valid amount greater than 0'
                   : `Amount must be at least ${minAmount.toFixed(2)} USDC`
                 }
@@ -137,7 +137,7 @@ export function ModifyStrategyModal({
                 {showTakeProfit ? '−' : '+'}
               </span>
             </button>
-            
+
             {showTakeProfit && (
               <div className='flex flex-col gap-1 border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-3'>
                 <input
