@@ -503,6 +503,14 @@ export default function DCABoard() {
         }
       }
 
+      // Remove debug logs
+      // if (process.env.NODE_ENV === 'development') {
+      //   console.log('Fetching price for token:', tokenIdentifier);
+      //   console.log('API URL:', `${apiUrl}/tokens?size=300`);
+      //   console.log('Total tokens fetched:', tokens.length);
+      // }
+
+
       // Fetch tokens from MultiversX API
       const response = await fetch(`${apiUrl}/tokens?size=300`);
 
