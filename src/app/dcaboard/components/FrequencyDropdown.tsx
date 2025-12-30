@@ -31,10 +31,26 @@ export function FrequencyDropdown({
     );
   }
 
+  // Sanitize frequency values - remove any invisible characters, trim whitespace, and normalize
+  const sanitizeFrequency = (freq: string): string => {
+    if (!freq) return '';
+    // Remove any non-printable characters and trim
+    return freq.replace(/[^\x20-\x7E]/g, '').trim().toLowerCase();
+  };
+
+  const sanitizedSelectedFrequency = sanitizeFrequency(selectedFrequency);
+  const sanitizedFrequencies = frequencies.map(f => sanitizeFrequency(f));
+
   // Check if the selected frequency is valid (exists in the frequencies array)
-  const isValidFrequency = selectedFrequency && frequencies.includes(selectedFrequency);
-  const currentFrequencyDisplay = isValidFrequency
-    ? getFrequencyDisplayName(selectedFrequency)
+  const isValidFrequency = sanitizedSelectedFrequency && sanitizedFrequencies.includes(sanitizedSelectedFrequency);
+
+  // Find the original frequency value that matches (for display purposes)
+  const matchingFrequency = isValidFrequency
+    ? frequencies[sanitizedFrequencies.indexOf(sanitizedSelectedFrequency)]
+    : '';
+
+  const currentFrequencyDisplay = matchingFrequency
+    ? getFrequencyDisplayName(matchingFrequency)
     : (frequencies.length > 0 ? 'Select frequency' : 'No frequencies available');
 
   return (
