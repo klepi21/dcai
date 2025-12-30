@@ -420,7 +420,7 @@ export default function DCABoard() {
                 const tokenName = metaEsdtTransfer.name?.replace('DCAi', '') || metaEsdtTransfer.ticker?.replace('DCAI', '') || 'token';
                 title = 'Strategy deleted';
                 description = `${tokenName} DCA strategy removed`;
-                icon = '×';
+                icon = '\u00D7'; // Multiplication sign / cross
               }
             }
 
