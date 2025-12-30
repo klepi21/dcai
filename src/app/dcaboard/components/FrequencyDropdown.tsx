@@ -72,7 +72,9 @@ export function FrequencyDropdown({
           />
           <div className='absolute z-20 mt-1 max-h-60 w-full overflow-auto border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] shadow-lg'>
             {frequencies.map((freq) => {
-              const isSelected = selectedFrequency === freq;
+              // Use sanitized comparison for accurate selection matching
+              const sanitizedFreq = sanitizeFrequency(freq);
+              const isSelected = sanitizedFreq === sanitizedSelectedFrequency;
               const displayName = getFrequencyDisplayName(freq);
               return (
                 <button
