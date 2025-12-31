@@ -30,7 +30,7 @@ export function PortfolioHeader({ totalPortfolio, onOpenOnboarding }: PortfolioH
       <section className='relative flex flex-col gap-1 overflow-visible w-full min-h-[200px]'>
         <div className='flex items-start justify-between'>
           <div className='flex flex-col gap-0.5'>
-            <h1 className='text-2xl font-semibold tracking-tight'>DCA Board</h1>
+            <h1 className='text-2xl font-semibold tracking-tight'>DCA Board - AI-Powered Crypto Strategy Manager</h1>
             <p className='max-w-xl text-sm text-[hsl(var(--gray-300)/0.8)]'>
               Orchestrate AI-assisted dollar cost averaging strategies on MultiversX.
               Review balances, fund your DCA vault, and fine-tune each strategy&apos;s

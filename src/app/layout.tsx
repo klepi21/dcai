@@ -12,13 +12,58 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'DCAi - AI-Powered Dollar Cost Averaging on MultiversX',
   description:
-    'DCAi is a sophisticated dApp for dollar cost averaging in the MultiversX ecosystem, using advanced AI LLM systems to determine optimal buy and take-profit times.',
+    'Sophisticated AI-powered Dollar Cost Averaging (DCA) and automated Take-Profit for the MultiversX ecosystem. Optimize your crypto strategy with HODLOTH LLMs.',
+  keywords: [
+    'DCA',
+    'AI',
+    'MultiversX',
+    'Dollar Cost Averaging',
+    'Crypto',
+    'DeFi',
+    'Automation',
+    'Web3',
+    'Take Profit',
+    'Smart Contracts'
+  ],
+  authors: [{ name: 'DCAi Team' }],
   viewport: {
     width: 'device-width',
     initialScale: 1
   },
   icons: {
     icon: '/favicon.ico'
+  },
+  openGraph: {
+    type: 'website',
+    url: 'https://dcai.multiversx.com',
+    title: 'DCAi - AI-Powered Dollar Cost Averaging',
+    description: 'Sophisticated AI-powered DCA and automated Take-Profit for the MultiversX ecosystem.',
+    siteName: 'DCAi',
+    images: [
+      {
+        url: '/assets/img/seoimg.png',
+        width: 1200,
+        height: 630,
+        alt: 'DCAi - AI-Powered DCA'
+      }
+    ]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'DCAi - AI-Powered Dollar Cost Averaging',
+    description: 'Sophisticated AI-powered DCA and automated Take-Profit for the MultiversX ecosystem.',
+    images: ['/assets/img/seoimg.png']
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1
+    }
   }
 };
 
