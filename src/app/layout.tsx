@@ -14,9 +14,9 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://dcai.multiversx.com')
   ),
-  title: 'DCAi - AI-Powered Dollar Cost Averaging on MultiversX',
+  title: 'DCAi: AI-Powered Dollar Cost Averaging on MultiversX',
   description:
-    'Sophisticated AI-powered Dollar Cost Averaging (DCA) and automated Take-Profit for the MultiversX ecosystem. Optimize your crypto strategy with HODLOTH LLMs.',
+    'Automate your crypto strategy with DCAi. Sophisticated AI-driven Dollar Cost Averaging and Take-Profit protocols built specifically for the MultiversX ecosystem.',
   keywords: [
     'DCA',
     'AI',
