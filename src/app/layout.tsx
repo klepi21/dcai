@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     type: 'website',
     url: 'https://dcai.multiversx.com',
     title: 'DCAi: AI-Powered Dollar Cost Averaging on MultiversX',
-    description: 'Automate your crypto strategy with DCAi. Sophisticated AI-driven Dollar Cost Averaging and Take-Profit protocols built specifically for the MultiversX ecosystem.',
+    description: 'Automate your crypto strategy with DCAi. Sophisticated AI-driven Dollar Cost Averaging and Take-Profit protocols built for the MultiversX ecosystem.',
     siteName: 'DCAi',
     images: [
       {
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'DCAi: AI-Powered Dollar Cost Averaging on MultiversX',
-    description: 'Automate your crypto strategy with DCAi. Sophisticated AI-driven Dollar Cost Averaging and Take-Profit protocols built specifically for the MultiversX ecosystem.',
+    description: 'Automate your crypto strategy with DCAi. Sophisticated AI-driven Dollar Cost Averaging and Take-Profit protocols built for the MultiversX ecosystem.',
     images: ['/assets/img/seoimg.png']
   },
   robots: {
