@@ -10,6 +10,7 @@ import { Toaster } from 'react-hot-toast';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://dcai.multiversx.com'),
   title: 'DCAi - AI-Powered Dollar Cost Averaging on MultiversX',
   description:
     'Sophisticated AI-powered Dollar Cost Averaging (DCA) and automated Take-Profit for the MultiversX ecosystem. Optimize your crypto strategy with HODLOTH LLMs.',
