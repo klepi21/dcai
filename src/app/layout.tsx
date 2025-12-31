@@ -39,16 +39,16 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    url: 'https://dcai.multiversx.com',
+    url: process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://dcai.multiversx.com'),
     title: 'DCAi: AI-Powered Dollar Cost Averaging on MultiversX',
     description: 'Automate your crypto strategy with DCAi. Sophisticated AI-driven Dollar Cost Averaging and Take-Profit protocols built for the MultiversX ecosystem.',
     siteName: 'DCAi',
     images: [
       {
-        url: '/assets/img/seoimg.png',
+        url: '/assets/img/seoimg.png', // Relative path is resolved with metadataBase
         width: 1200,
         height: 630,
-        alt: 'DCAi - AI-Powered DCA'
+        alt: 'DCAi: AI-Powered Dollar Cost Averaging on MultiversX'
       }
     ]
   },
