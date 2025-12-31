@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   ),
   title: 'DCAi: AI-Powered Dollar Cost Averaging on MultiversX',
   description:
-    'Automate your crypto strategy with DCAi. Sophisticated AI-driven Dollar Cost Averaging and Take-Profit protocols built specifically for the MultiversX ecosystem.',
+    'Automate your crypto strategy with DCAi. Sophisticated AI-driven Dollar Cost Averaging and Take-Profit protocols built for the MultiversX ecosystem.',
   keywords: [
     'DCA',
     'AI',
