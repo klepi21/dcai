@@ -14,6 +14,7 @@ import { DeleteModal } from './components/modals/DeleteModal';
 import { ModifyStrategyModal } from './components/modals/ModifyStrategyModal';
 import { StrategyAnalysisModal } from './components/modals/StrategyAnalysisModal';
 import { SuccessModal } from './components/modals/SuccessModal';
+import { OnboardingModal } from './components/modals/OnboardingModal';
 import { LoadingState } from './components/LoadingState';
 import { getNetworkPath, getApiUrl } from './utils/network';
 import toast from 'react-hot-toast';
@@ -118,6 +119,9 @@ export default function DCABoard() {
   // State for activity pagination
   const [currentActivityPage, setCurrentActivityPage] = useState<number>(1);
   const itemsPerPage = 6;
+
+  // State for onboarding modal
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   // Ref to track if component is mounted
   const isMountedRef = useRef(true);
@@ -477,6 +481,27 @@ export default function DCABoard() {
       return () => clearTimeout(timeoutId);
     }
   }, [address, loadingSetup, setups, strategies.length]);
+
+  // Check for first-time visitor to show onboarding
+  useEffect(() => {
+    const hasSeenOnboarding = localStorage.getItem('dcai_onboarding_seen');
+    if (!hasSeenOnboarding) {
+      // Small delay to ensure other things are loaded
+      const timer = setTimeout(() => {
+        setIsOnboardingOpen(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleCloseOnboarding = () => {
+    setIsOnboardingOpen(false);
+    localStorage.setItem('dcai_onboarding_seen', 'true');
+  };
+
+  const handleOpenOnboarding = () => {
+    setIsOnboardingOpen(true);
+  };
 
   // Reset mounted ref when component mounts
   useEffect(() => {
@@ -1133,7 +1158,10 @@ export default function DCABoard() {
   return (
     <div className='flex w-full justify-center overflow-visible relative'>
       <div className='flex w-full max-w-6xl flex-col gap-12 bg-background text-foreground overflow-visible'>
-        <PortfolioHeader totalPortfolio={totalPortfolio} />
+        <PortfolioHeader
+          totalPortfolio={totalPortfolio}
+          onOpenOnboarding={handleOpenOnboarding}
+        />
 
         <section className='relative grid gap-8 border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-6 shadow-sm md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)]'>
           <div className='pointer-events-none absolute -top-20 pt-2 left-2 z-10'>
@@ -1262,6 +1290,17 @@ export default function DCABoard() {
         onClose={() => setAnalysisModal({ isOpen: false, token: '', usdcPerSwap: 0, frequency: '', takeProfit: 0 })}
         onCreateStrategy={handleCreateStrategyAfterAnalysis}
         onModifyStrategy={handleModifyStrategyAfterAnalysis}
+      />
+      <SuccessModal
+        isOpen={successModal.isOpen}
+        title={successModal.title}
+        message={successModal.message}
+        onClose={() => setSuccessModal({ ...successModal, isOpen: false })}
+      />
+
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={handleCloseOnboarding}
       />
     </div>
   );

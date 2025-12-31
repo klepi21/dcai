@@ -1,10 +1,12 @@
 import Image from 'next/image';
+import { HelpCircle } from 'lucide-react';
 
 interface PortfolioHeaderProps {
   totalPortfolio: number;
+  onOpenOnboarding: () => void;
 }
 
-export function PortfolioHeader({ totalPortfolio }: PortfolioHeaderProps) {
+export function PortfolioHeader({ totalPortfolio, onOpenOnboarding }: PortfolioHeaderProps) {
   return (
     <>
       <style jsx>{`
@@ -26,13 +28,23 @@ export function PortfolioHeader({ totalPortfolio }: PortfolioHeaderProps) {
         }
       `}</style>
       <section className='relative flex flex-col gap-1 overflow-visible w-full min-h-[200px]'>
-        <div className='flex flex-col gap-0.5'>
-          <h1 className='text-2xl font-semibold tracking-tight'>DCA Board</h1>
-          <p className='max-w-xl text-sm text-[hsl(var(--gray-300)/0.8)]'>
-            Orchestrate AI-assisted dollar cost averaging strategies on MultiversX.
-            Review balances, fund your DCA vault, and fine-tune each strategy&apos;s
-            risk and take-profit behaviour.
-          </p>
+        <div className='flex items-start justify-between'>
+          <div className='flex flex-col gap-0.5'>
+            <h1 className='text-2xl font-semibold tracking-tight'>DCA Board</h1>
+            <p className='max-w-xl text-sm text-[hsl(var(--gray-300)/0.8)]'>
+              Orchestrate AI-assisted dollar cost averaging strategies on MultiversX.
+              Review balances, fund your DCA vault, and fine-tune each strategy&apos;s
+              risk and take-profit behaviour.
+            </p>
+          </div>
+
+          <button
+            onClick={onOpenOnboarding}
+            className='flex items-center gap-2 rounded-none border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--gray-300)/0.8)] transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:text-[hsl(var(--sky-300))]'
+          >
+            <HelpCircle size={14} />
+            How it works
+          </button>
         </div>
 
         <div className='flex flex-col md:flex-row gap-4 items-end relative w-full overflow-visible'>
@@ -46,7 +58,7 @@ export function PortfolioHeader({ totalPortfolio }: PortfolioHeaderProps) {
             </p>
           </div>
         </div>
-        
+
         <img
           src='/assets/img/stacking.png'
           alt='Stacking'
