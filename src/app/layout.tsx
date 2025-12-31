@@ -9,11 +9,11 @@ import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ subsets: ['latin'] });
 
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://dcai.multiversx.com');
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://dcai.multiversx.com')
-  ),
+  metadataBase: new URL(baseUrl),
   title: 'DCAi: AI-Powered Dollar Cost Averaging on MultiversX',
   description:
     'Automate your crypto strategy with DCAi. Sophisticated AI-driven Dollar Cost Averaging and Take-Profit protocols built for the MultiversX ecosystem.',
@@ -39,13 +39,13 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    url: process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://dcai.multiversx.com'),
+    url: baseUrl,
     title: 'DCAi: AI-Powered Dollar Cost Averaging on MultiversX',
     description: 'Automate your crypto strategy with DCAi. Sophisticated AI-driven Dollar Cost Averaging and Take-Profit protocols built for the MultiversX ecosystem.',
     siteName: 'DCAi',
     images: [
       {
-        url: '/assets/img/seoimg.png', // Relative path is resolved with metadataBase
+        url: `${baseUrl}/assets/img/seoimg.png`,
         width: 1200,
         height: 630,
         alt: 'DCAi: AI-Powered Dollar Cost Averaging on MultiversX'
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'DCAi: AI-Powered Dollar Cost Averaging on MultiversX',
     description: 'Automate your crypto strategy with DCAi. Sophisticated AI-driven Dollar Cost Averaging and Take-Profit protocols built for the MultiversX ecosystem.',
-    images: ['/assets/img/seoimg.png']
+    images: [`${baseUrl}/assets/img/seoimg.png`]
   },
   robots: {
     index: true,
