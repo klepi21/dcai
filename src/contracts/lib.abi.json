@@ -155,6 +155,19 @@
             "outputs": []
         },
         {
+            "docs": [
+                "Endpoint executed by the bot to perform buy operations for multiple DCA strategies.",
+                "",
+                "Parameters:",
+                "- `nonces`: A list of nonces representing the DCA strategies to execute.",
+                "",
+                "The bot checks each strategy to see if it is eligible for execution based on the USDC balance,",
+                "the last executed timestamp, and the defined frequency. If eligible, it aggregates the total amount to swap,",
+                "performs the swap, and updates each strategy's attributes accordingly.",
+                "",
+                "It will skip strategies that do not meet the criteria and will return any",
+                "dust amounts to the caller. It will fail only if no strategies at all are eligible for execution."
+            ],
             "name": "buy",
             "mutability": "mutable",
             "inputs": [
@@ -167,6 +180,20 @@
             "outputs": []
         },
         {
+            "docs": [
+                "Endpoint executed by the bot to perform take profit operations for multiple DCA strategies.",
+                "",
+                "Parameters:",
+                "- `nonces`: A list of nonces representing the DCA strategies to evaluate for take profit.",
+                "",
+                "The bot checks each strategy to see if the take profit condition is met based on the",
+                "DCA token balance and the defined take profit percentage. If the condition is met,",
+                "it aggregates the total amount to swap, performs the swap, deducts any applicable profit",
+                "fees, and updates each strategy's attributes accordingly.",
+                "",
+                "It will skip strategies that do not meet the take profit condition and will return any",
+                "dust amounts to the caller. It will fail only if no strategies at all are eligible for take profit."
+            ],
             "name": "takeProfit",
             "mutability": "mutable",
             "inputs": [
@@ -351,6 +378,37 @@
             ]
         },
         {
+            "name": "burn",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "nonce",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "withdrawBalance",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token",
+                    "type": "EgldOrEsdtTokenIdentifier"
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
             "docs": [
                 "Endpoint to create a new DCA strategy.",
                 "",
@@ -480,6 +538,7 @@
                 "- `usdc_balance`: The current USDC balance allocated for DCA operations.",
                 "- `dca_token_balance`: The current balance of the token being acquired through DCA.",
                 "- `last_executed_ts_millis`: The timestamp in milliseconds of the last executed DCA operation.",
+                "- `take_profit_condition_met`: A boolean indicating whether the take profit condition is currently met.",
                 "- `buys`: A list of executed buy operations, each represented by a `Swap` struct (including usdc amount, dca token amount, and timestamp).",
                 "- `sells`: A list of executed sell operations, each represented by a `Swap` struct (including usdc amount, dca token amount, and timestamp)."
             ],
@@ -517,6 +576,9 @@
                     "type": "u64"
                 },
                 {
+                    "type": "bool"
+                },
+                {
                     "type": "List<Swap>"
                 },
                 {
@@ -530,7 +592,7 @@
             "inputs": [],
             "outputs": [
                 {
-                    "type": "variadic<multi<u64,BigUint,bytes,u64,u64,BigUint,BigUint,u64,List<Swap>,List<Swap>>>",
+                    "type": "variadic<multi<u64,BigUint,bytes,u64,u64,BigUint,BigUint,u64,bool,List<Swap>,List<Swap>>>",
                     "multi_result": true
                 }
             ]

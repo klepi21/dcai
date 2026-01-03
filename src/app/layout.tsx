@@ -10,7 +10,7 @@ import { Toaster } from 'react-hot-toast';
 const inter = Inter({ subsets: ['latin'] });
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://dcai.multiversx.com');
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://dcai-virid.vercel.app/');
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),

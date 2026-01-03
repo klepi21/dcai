@@ -331,8 +331,8 @@ export const useDcaContract = () => {
 
       const returnData = data.data?.data?.returnData;
 
-      if (!returnData || returnData.length < 10) {
-        throw new Error('Invalid response: insufficient data returned (expected 10 values)');
+      if (!returnData || returnData.length < 11) {
+        throw new Error('Invalid response: insufficient data returned (expected 11 values)');
       }
 
       // Parse the response according to ABI
@@ -345,8 +345,9 @@ export const useDcaContract = () => {
       // 5: usdc_balance (BigUint)
       // 6: dca_token_balance (BigUint)
       // 7: last_executed_ts_millis (u64)
-      // 8: List<Swap> (buys)
-      // 9: List<Swap> (sells)
+      // 8: is_in_profit (bool - new return value)
+      // 9: List<Swap> (buys)
+      // 10: List<Swap> (sells)
 
       // Skip index 0 (nonce u64) and start from index 1
       const amountPerSwapHex = returnData[1] ? base64ToHex(returnData[1]) : '0';
@@ -482,11 +483,11 @@ export const useDcaContract = () => {
       };
 
 
-      // Parse List<Swap> for buys (index 8)
-      const buys = parseSwapList(returnData[8], 'buys');
+      // Parse List<Swap> for buys (index 9)
+      const buys = parseSwapList(returnData[9], 'buys');
 
-      // Parse List<Swap> for sells (index 9)
-      const sells = parseSwapList(returnData[9], 'sells');
+      // Parse List<Swap> for sells (index 10)
+      const sells = parseSwapList(returnData[10], 'sells');
 
       const attributes = {
         amountPerSwap,
