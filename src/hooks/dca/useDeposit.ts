@@ -17,7 +17,7 @@ const DEPOSIT_TRANSACTION_INFO = {
 };
 
 // USDC token identifier
-const USDC_TOKEN_IDENTIFIER = USDC_TOKEN_ID;
+const USDC_TOKEN_IDENTIFIER = 'USDC-c76f1f';
 
 export const useDeposit = () => {
   const { network } = useGetNetworkConfig();
