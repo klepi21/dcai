@@ -8,12 +8,12 @@ const AIChipVisualization = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
     // Set canvas size
     const updateSize = () => {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(window.devicePixelRatio, 2); // Cap at 2x for performance
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
@@ -26,36 +26,34 @@ const AIChipVisualization = () => {
     let animationFrame: number;
     let time = 0;
 
-    // Light segment class for traveling lights
+    // Light segment class
     class LightSegment {
       progress: number;
       speed: number;
       brightness: number;
-      length: number;
       nodeIndex: number;
 
       constructor(nodeIndex: number) {
         this.nodeIndex = nodeIndex;
         this.progress = Math.random();
-        this.speed = 0.003 + Math.random() * 0.002;
-        this.brightness = 0.7 + Math.random() * 0.3;
-        this.length = 0.15; // Length of the light segment (0-1)
+        this.speed = 0.004 + Math.random() * 0.003;
+        this.brightness = 0.8;
       }
 
       update() {
         this.progress += this.speed;
-        if (this.progress > 1 + this.length) {
-          this.progress = -this.length;
+        if (this.progress > 1.2) {
+          this.progress = -0.2;
         }
       }
     }
 
-    // Coordinates (relative to canvas)
+    // Coordinates
     const centerX = 400;
-    const centerY = 250;
-    const chipWidth = 120;
-    const chipHeight = 120;
-    const nodeY = 500;
+    const centerY = 220;
+    const chipWidth = 100;
+    const chipHeight = 100;
+    const nodeY = 420;
     const nodeSpacing = 120;
     const nodes = [
       { x: centerX - nodeSpacing * 2, y: nodeY, label: '15%' },
@@ -65,13 +63,10 @@ const AIChipVisualization = () => {
       { x: centerX + nodeSpacing * 2, y: nodeY, label: '10%' }
     ];
 
-    // Create light segments (2-3 per wire)
+    // Create light segments (1 per wire for performance)
     const lightSegments: LightSegment[] = [];
     nodes.forEach((_, i) => {
-      const count = 2 + Math.floor(Math.random() * 2);
-      for (let j = 0; j < count; j++) {
-        lightSegments.push(new LightSegment(i));
-      }
+      lightSegments.push(new LightSegment(i));
     });
 
     // Helper to get point on quadratic curve
@@ -84,40 +79,38 @@ const AIChipVisualization = () => {
     // Draw function
     const draw = () => {
       const rect = canvas.getBoundingClientRect();
-      ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+
+      // Clear with black background
+      ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, rect.width, rect.height);
 
-      time += 0.01;
+      time += 0.02;
 
-      // Draw wires/connections (darker)
-      ctx.strokeStyle = 'rgba(234, 179, 8, 0.15)';
-      ctx.lineWidth = 2;
+      // Draw wires (static, darker)
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.12)';
+      ctx.lineWidth = 1.5;
 
       nodes.forEach((node) => {
         ctx.beginPath();
         ctx.moveTo(centerX, centerY + chipHeight / 2);
-
-        const controlY = centerY + chipHeight / 2 + 100;
-        ctx.quadraticCurveTo(
-          node.x,
-          controlY,
-          node.x,
-          node.y - 30
-        );
+        const controlY = centerY + chipHeight / 2 + 80;
+        ctx.quadraticCurveTo(node.x, controlY, node.x, node.y - 25);
         ctx.stroke();
       });
 
-      // Draw light segments traveling along wires
+      // Draw light segments (optimized - fewer steps)
       lightSegments.forEach((segment) => {
         segment.update();
 
         const node = nodes[segment.nodeIndex];
-        const controlY = centerY + chipHeight / 2 + 100;
+        const controlY = centerY + chipHeight / 2 + 80;
 
-        // Draw the light segment as a gradient along the path
-        const steps = 20;
+        // Draw gradient line segment
+        const steps = 12; // Reduced from 20
+        const gradient = ctx.createLinearGradient(centerX, centerY, node.x, node.y);
+
         for (let i = 0; i < steps; i++) {
-          const t = segment.progress + (i / steps) * segment.length;
+          const t = segment.progress + (i / steps) * 0.15;
 
           if (t >= 0 && t <= 1) {
             const point = getQuadraticPoint(
@@ -127,20 +120,17 @@ const AIChipVisualization = () => {
               node.x,
               controlY,
               node.x,
-              node.y - 30
+              node.y - 25
             );
 
-            // Fade in/out at edges of segment
-            const edgeFade = Math.min(i / 5, (steps - i) / 5, 1);
-            const opacity = segment.brightness * edgeFade;
+            const edgeFade = Math.min(i / 3, (steps - i) / 3, 1);
+            const opacity = segment.brightness * edgeFade * 0.9;
 
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = `rgba(234, 179, 8, ${opacity})`;
             ctx.strokeStyle = `rgba(234, 179, 8, ${opacity})`;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 2.5;
 
             if (i > 0) {
-              const prevT = segment.progress + ((i - 1) / steps) * segment.length;
+              const prevT = segment.progress + ((i - 1) / steps) * 0.15;
               const prevPoint = getQuadraticPoint(
                 prevT,
                 centerX,
@@ -148,7 +138,7 @@ const AIChipVisualization = () => {
                 node.x,
                 controlY,
                 node.x,
-                node.y - 30
+                node.y - 25
               );
 
               ctx.beginPath();
@@ -160,51 +150,38 @@ const AIChipVisualization = () => {
         }
       });
 
-      ctx.shadowBlur = 0;
-
-      // Draw chip
+      // Draw chip (simplified)
       const chipX = centerX - chipWidth / 2;
       const chipY = centerY - chipHeight / 2;
 
-      // Chip glow
-      const glowIntensity = 0.4 + Math.sin(time * 2) * 0.15;
-      ctx.shadowBlur = 40;
-      ctx.shadowColor = `rgba(234, 179, 8, ${glowIntensity})`;
-
-      // Chip body
-      ctx.fillStyle = 'rgba(20, 20, 20, 0.95)';
-      ctx.strokeStyle = 'rgba(234, 179, 8, 0.7)';
+      ctx.fillStyle = 'rgba(15, 15, 15, 0.95)';
+      ctx.strokeStyle = `rgba(234, 179, 8, ${0.5 + Math.sin(time) * 0.2})`;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(chipX, chipY, chipWidth, chipHeight, 8);
+      ctx.roundRect(chipX, chipY, chipWidth, chipHeight, 6);
       ctx.fill();
       ctx.stroke();
 
-      ctx.shadowBlur = 0;
-
-      // Chip icon
-      ctx.fillStyle = 'rgba(234, 179, 8, 0.9)';
-      ctx.font = '14px Inter';
+      // Chip text
+      ctx.fillStyle = 'rgba(234, 179, 8, 0.95)';
+      ctx.font = '12px Inter';
       ctx.textAlign = 'center';
-      ctx.fillText('UPSTAKE', centerX, centerY - 5);
-      ctx.fillText('AI AGENT', centerX, centerY + 10);
+      ctx.fillText('AI AGENT', centerX, centerY + 3);
 
-      // Draw nodes
+      // Draw nodes (simplified)
       nodes.forEach((node) => {
-        // Node circle
-        ctx.fillStyle = 'rgba(30, 30, 30, 0.9)';
-        ctx.strokeStyle = 'rgba(234, 179, 8, 0.6)';
-        ctx.lineWidth = 2;
+        ctx.fillStyle = 'rgba(20, 20, 20, 0.9)';
+        ctx.strokeStyle = 'rgba(234, 179, 8, 0.5)';
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(node.x, node.y, 30, 0, Math.PI * 2);
+        ctx.arc(node.x, node.y, 24, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
-        // Label
         ctx.fillStyle = 'rgba(234, 179, 8, 0.9)';
-        ctx.font = '14px Inter';
+        ctx.font = '11px Inter';
         ctx.textAlign = 'center';
-        ctx.fillText(node.label, node.x, node.y + 50);
+        ctx.fillText(node.label, node.x, node.y + 38);
       });
 
       animationFrame = requestAnimationFrame(draw);
