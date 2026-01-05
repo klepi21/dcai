@@ -1,5 +1,7 @@
+'use client';
 import Image from 'next/image';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, ExternalLink } from 'lucide-react';
+import { useGetAccount, useGetNetworkConfig } from '@/lib';
 
 interface PortfolioHeaderProps {
   totalPortfolio: number;
@@ -7,6 +9,14 @@ interface PortfolioHeaderProps {
 }
 
 export function PortfolioHeader({ totalPortfolio, onOpenOnboarding }: PortfolioHeaderProps) {
+  const { address } = useGetAccount();
+  const { network } = useGetNetworkConfig();
+
+  const truncateAddress = (addr: string) => {
+    if (!addr) return '';
+    return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+  };
+
   return (
     <>
       <style jsx>{`
@@ -49,13 +59,35 @@ export function PortfolioHeader({ totalPortfolio, onOpenOnboarding }: PortfolioH
 
         <div className='flex flex-col md:flex-row gap-4 items-end relative w-full overflow-visible'>
           <div className='border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-5 shadow-sm md:w-1/2'>
-            <h2 className='text-xs font-semibold uppercase tracking-[0.25em] text-[hsl(var(--sky-300)/0.9)]'>
-              Portfolio
-            </h2>
-            <p className='mt-3 text-2xl font-bold'>${totalPortfolio.toFixed(2)}</p>
-            <p className='mt-1 text-xs text-[hsl(var(--gray-300)/0.7)]'>
-              Total value across all DCA strategies.
-            </p>
+            <div className='flex items-start justify-between'>
+              <div>
+                <h2 className='text-xs font-semibold uppercase tracking-[0.25em] text-[hsl(var(--sky-300)/0.9)]'>
+                  Portfolio
+                </h2>
+                <p className='mt-3 text-2xl font-bold'>${totalPortfolio.toFixed(2)}</p>
+                <p className='mt-1 text-xs text-[hsl(var(--gray-300)/0.7)]'>
+                  Total value across all DCA strategies.
+                </p>
+              </div>
+
+              {address && (
+                <div className='flex flex-col items-end gap-1.5 pt-1'>
+                  <span className='text-[10px] uppercase tracking-wider text-[hsl(var(--gray-300)/0.5)] font-semibold'>Wallet</span>
+                  <div className='flex items-center gap-2 px-2 py-1 bg-[hsl(var(--gray-300)/0.05)] border border-[hsl(var(--gray-300)/0.1)] rounded-sm'>
+                    <span className='text-[10px] font-mono text-[hsl(var(--gray-300)/0.9)]'>{truncateAddress(address)}</span>
+                    <a
+                      href={`${network.explorerAddress}/accounts/${address}`}
+                      target='_blank'
+                      rel='noreferrer'
+                      className='text-[hsl(var(--sky-300)/0.7)] hover:text-[hsl(var(--sky-300))] transition-colors'
+                      title='View in Explorer'
+                    >
+                      <ExternalLink size={10} />
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
