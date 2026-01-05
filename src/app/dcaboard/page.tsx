@@ -180,10 +180,23 @@ export default function DCABoard() {
 
       const tokensData = await response.json();
 
-      // Filter tokens that start with "DCAI"
+      // Build a set of known strategy token collections from setups
+      const knownCollections = new Set<string>();
+      if (setups) {
+        setups.forEach(s => {
+          if (s.strategyToken) {
+            knownCollections.add(s.strategyToken);
+          }
+        });
+      }
+
+      // Filter tokens that match our strategy token collections
       const dcaiTokens = tokensData.filter((token: any) => {
         const identifier = token.identifier || token.tokenIdentifier || '';
-        return identifier.startsWith('DCAI');
+        const collection = token.collection || '';
+
+        // Match if it's in our known collections or (as fallback/transition) starts with DCAI
+        return knownCollections.has(collection) || identifier.startsWith('DCAI');
       });
 
       // Fetch strategy attributes for each DCAI token with 0.35s delay between calls
@@ -218,12 +231,6 @@ export default function DCABoard() {
             continue; // Skip nonce 0 (invalid strategy token)
           }
 
-          // Get the owner address (this is the contract address for this strategy)
-          const contractAddress = dcaiToken.owner;
-          if (!contractAddress) {
-            continue; // Skip if no owner address
-          }
-
           // Add delay between calls (0.35 seconds) except for the first one
           if (i > 0) {
             await new Promise(resolve => setTimeout(resolve, 350));
@@ -233,10 +240,21 @@ export default function DCABoard() {
 
           // Extract token info before calling queryGetStrategyTokenAttributes
           const collection = dcaiToken.collection || '';
-          const tokenTicker = collection.split('-')[0]?.replace('DCAI', '') || identifier.split('-')[0]?.replace('DCAI', '') || 'UNKNOWN';
 
-          // Use the owner address as the contract address for this strategy
-          const attributes = await queryGetStrategyTokenAttributes(nonce, contractAddress);
+          // Find the matching setup to get the correct dcaToken ticker
+          const matchingSetup = setups?.find(s => s.strategyToken === collection);
+          const dcaTokenTickerFromSetup = matchingSetup?.dcaToken?.split('-')[0];
+
+          // Fallback ticker parsing
+          const tokenTicker = dcaTokenTickerFromSetup || collection.split('-')[0]?.replace('DCAI', '') || identifier.split('-')[0]?.replace('DCAI', '') || 'UNKNOWN';
+
+          // Use the matching setup's address as the contract address for this strategy
+          const strategyContractAddress = matchingSetup?.address;
+          if (!strategyContractAddress) {
+            continue; // Skip if we don't have a matching setup for this token
+          }
+
+          const attributes = await queryGetStrategyTokenAttributes(nonce, strategyContractAddress);
 
           if (!isMountedRef.current) break; // Check after async call
 
@@ -298,7 +316,7 @@ export default function DCABoard() {
               availableUsdc: usdcBalance,
               tokenBalance: tokenBalance,
               lastExecutedTsMillis: lastExecutedTsMillis,
-              contractAddress: contractAddress, // Store the contract address for deposit/withdraw
+              contractAddress: strategyContractAddress, // Store the contract address for deposit/withdraw
               buys: attributes.buys || [],
               sells: attributes.sells || []
             };
