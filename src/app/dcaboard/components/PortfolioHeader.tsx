@@ -73,7 +73,7 @@ export function PortfolioHeader({ totalPortfolio, onOpenOnboarding }: PortfolioH
               {address && (
                 <div className='flex flex-col items-end gap-1.5 pt-1'>
                   <span className='text-[10px] uppercase tracking-wider text-[hsl(var(--gray-300)/0.5)] font-semibold'>Wallet</span>
-                  <div className='flex items-center gap-2 px-2 py-1 bg-[hsl(var(--gray-300)/0.05)] border border-[hsl(var(--gray-300)/0.1)] rounded-sm'>
+                  <div className='flex items-center gap-2 px-2 py-1 bg-[hsl(var(--gray-300)/0.05)] border border-[hsl(var(--gray-300)/0.1)] rounded-none'>
                     <span className='text-[10px] font-mono text-[hsl(var(--gray-300)/0.9)]'>{truncateAddress(address)}</span>
                     <a
                       href={`${network.explorerAddress}/accounts/${address}`}
