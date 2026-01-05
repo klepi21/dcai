@@ -48,13 +48,13 @@ const AIChipVisualization = () => {
       }
     }
 
-    // Coordinates
+    // Coordinates - SCALED UP and CENTERED
     const centerX = 400;
-    const centerY = 220;
-    const chipWidth = 100;
-    const chipHeight = 100;
-    const nodeY = 420;
-    const nodeSpacing = 140;
+    const centerY = 280;
+    const chipWidth = 140;
+    const chipHeight = 140;
+    const nodeY = 520;
+    const nodeSpacing = 180;
 
     // Updated nodes with flow labels
     const nodes = [
@@ -87,27 +87,26 @@ const AIChipVisualization = () => {
 
       time += 0.02;
 
-      // Draw wires (static, darker)
-      ctx.strokeStyle = 'rgba(234, 179, 8, 0.12)';
-      ctx.lineWidth = 1.5;
+      // Draw wires - THICKER
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.15)';
+      ctx.lineWidth = 2.5;
 
       nodes.forEach((node) => {
         ctx.beginPath();
         ctx.moveTo(centerX, centerY + chipHeight / 2);
-        const controlY = centerY + chipHeight / 2 + 80;
-        ctx.quadraticCurveTo(node.x, controlY, node.x, node.y - 30);
+        const controlY = centerY + chipHeight / 2 + 100;
+        ctx.quadraticCurveTo(node.x, controlY, node.x, node.y - 40);
         ctx.stroke();
       });
 
-      // Draw light segments (optimized - fewer steps)
+      // Draw light segments
       lightSegments.forEach((segment) => {
         segment.update();
 
         const node = nodes[segment.nodeIndex];
-        const controlY = centerY + chipHeight / 2 + 80;
+        const controlY = centerY + chipHeight / 2 + 100;
 
-        // Draw gradient line segment
-        const steps = 12; // Reduced from 20
+        const steps = 12;
         // const gradient = ctx.createLinearGradient(centerX, centerY, node.x, node.y); // This line is not used
 
         for (let i = 0; i < steps; i++) {
@@ -121,14 +120,14 @@ const AIChipVisualization = () => {
               node.x,
               controlY,
               node.x,
-              node.y - 30
+              node.y - 40
             );
 
             const edgeFade = Math.min(i / 3, (steps - i) / 3, 1);
             const opacity = segment.brightness * edgeFade * 0.9;
 
             ctx.strokeStyle = `rgba(234, 179, 8, ${opacity})`;
-            ctx.lineWidth = 2.5;
+            ctx.lineWidth = 3.5;
 
             if (i > 0) {
               const prevT = segment.progress + ((i - 1) / steps) * 0.15;
@@ -139,7 +138,7 @@ const AIChipVisualization = () => {
                 node.x,
                 controlY,
                 node.x,
-                node.y - 30
+                node.y - 40
               );
 
               ctx.beginPath();
@@ -151,44 +150,44 @@ const AIChipVisualization = () => {
         }
       });
 
-      // Draw chip (simplified)
+      // Draw chip - BIGGER
       const chipX = centerX - chipWidth / 2;
       const chipY = centerY - chipHeight / 2;
 
       ctx.fillStyle = 'rgba(15, 15, 15, 0.95)';
       ctx.strokeStyle = `rgba(234, 179, 8, ${0.5 + Math.sin(time) * 0.2})`;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.roundRect(chipX, chipY, chipWidth, chipHeight, 6);
+      ctx.roundRect(chipX, chipY, chipWidth, chipHeight, 8);
       ctx.fill();
       ctx.stroke();
 
       // Chip text
       ctx.fillStyle = 'rgba(234, 179, 8, 0.95)';
-      ctx.font = 'bold 11px Inter';
+      ctx.font = 'bold 14px Inter';
       ctx.textAlign = 'center';
-      ctx.fillText('AI AGENT', centerX, centerY + 3);
+      ctx.fillText('AI AGENT', centerX, centerY + 4);
 
-      // Draw nodes (simplified)
+      // Draw nodes - BIGGER
       nodes.forEach((node) => {
         ctx.fillStyle = 'rgba(20, 20, 20, 0.9)';
         ctx.strokeStyle = 'rgba(234, 179, 8, 0.5)';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(node.x, node.y, 28, 0, Math.PI * 2);
+        ctx.arc(node.x, node.y, 36, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
         // Main label
         ctx.fillStyle = 'rgba(234, 179, 8, 0.95)';
-        ctx.font = 'bold 11px Inter';
+        ctx.font = 'bold 13px Inter';
         ctx.textAlign = 'center';
-        ctx.fillText(node.label, node.x, node.y - 2);
+        ctx.fillText(node.label, node.x, node.y - 3);
 
         // Sublabel
         ctx.fillStyle = 'rgba(234, 179, 8, 0.6)';
-        ctx.font = '9px Inter';
-        ctx.fillText(node.sublabel, node.x, node.y + 10);
+        ctx.font = '11px Inter';
+        ctx.fillText(node.sublabel, node.x, node.y + 12);
       });
 
       animationFrame = requestAnimationFrame(draw);
