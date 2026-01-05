@@ -21,17 +21,37 @@
 
 ## 🚀 Features
 
-### 🧠 AI-Driven Execution
-Unlike standard DCAs that buy blindly, our **Neuro-Engine** monitors on-chain metrics 24/7. It executes your scheduled buys during favorable market conditions to optimize your average entry price.
+### 💰 Automated Take-Profit (The Game Changer)
+**Why sell too early or hold too long?** DCAi removes the emotion from exiting.
+-   **Set & Forget**: Define your target profit percentage (e.g., +30%, +100%).
+-   **Smart Monitoring**: The contract continuously tracks the value of your accumulated tokens against your average buy price.
+-   **Auto-Execution**: The moment your target is hit, the Smart Contract **automatically swaps** your position back to USDC. No manual intervention required. Secure your gains while you sleep.
 
-### 🛡️ Non-Custodial Security
-You stay in control. Funds are deposited into smart contracts where **only you** have the authority to manage or withdraw them. There are no middlemen, just code.
+### 🧠 Neuro-Engine Execution
+Unlike standard DCAs that buy blindly, our AI-driven engine monitors on-chain metrics 24/7. It executes your scheduled buys during favorable market conditions to optimize your average entry price, ensuring you get more tokens for your money.
 
-### 💰 Automated Take-Profit
-Set your target and let the bot do the rest. Configure a profit percentage (e.g., +20%, +50%), and the smart contract will automatically sell your accumulated bag back to USDC when the target is hit.
+### 🛡️ Non-Custodial & Secure
+You stay in control. Funds are deposited into specific Smart Contracts where **only you** have the authority to manage or withdraw them. There are no middlemen, just code.
 
-### ⚡ MultiversX Speed & Low Fees
+### ⚡ MultiversX Efficiency
 Built on one of the fastest and most scalable blockchains, ensuring your transactions are lightning-fast and cost mere fractions of a cent.
+
+---
+
+## 🏗️ Smart Contract Architecture
+
+DCAi employs a sophisticated **Parent-Child Contract** design pattern to ensure maximum security and scalability:
+
+### 1. The Parent Contract (Factory)
+-   **Role**: Acts as the central registry and factory.
+-   **Function**: Deploys a unique, isolated "Child" contract for every new strategy created.
+-   **Benefit**: Ensures organized management of all active strategies on the platform.
+
+### 2. Child Contracts (Strategies)
+-   **Role**: The individual "Vault" for your specific DCA strategy.
+-   **Isolation**: Each strategy has its own dedicated Smart Contract address.
+-   **Security**: Your funds (USDC and purchased tokens) are held here. Because it's an isolated contract, your assets are never commingled with other users' funds.
+-   **Logic**: Contains the specific rules for your strategy (Frequency, Amount, Token, Take-Profit Target).
 
 ---
 
