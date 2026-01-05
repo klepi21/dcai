@@ -381,48 +381,50 @@ export default function DCABoard() {
             // Skip if before Jan 4, 2026
             if (timestamp < JAN_4_2026_MS) continue;
 
-            const transfersList = transfer.action.arguments.transfers || [];
+            // Look for transfers in multiple places:
+            // 1. Top-level transfers array (standard transfers/mints)
+            // 2. action.arguments.transfers (MultiESDTNFTTransfer arguments)
+            const transfersList = [
+              ...(transfer.transfers || []),
+              ...(transfer.action?.arguments?.transfers || [])
+            ];
 
             let title = '';
             let description = '';
             let icon = '';
 
-            if (func === 'deposit') {
-              // Find USDC transfer
-              const usdcTransfer = transfersList.find((t: any) => t.ticker === 'USDC' || t.token?.startsWith('USDC-'));
-              const metaEsdtTransfer = transfersList.find((t: any) => t.type === 'MetaESDT');
+            // Extract token name helper
+            const getDcaTokenName = (txList: any[]) => {
+              const meta = txList.find((t: any) => t.type === 'MetaESDT' || t.token?.startsWith('DCAI') || t.identifier?.startsWith('DCAI'));
+              if (meta) {
+                return (meta.name || meta.ticker || '').replace('DCAi', '').replace('DCAI', '');
+              }
+              return null;
+            };
 
+            const tokenName = getDcaTokenName(transfersList) || 'token';
+
+            if (func === 'deposit') {
+              // Find USDC transfer to get amount
+              const usdcTransfer = transfersList.find((t: any) => t.ticker === 'USDC' || t.token?.startsWith('USDC-') || t.identifier?.startsWith('USDC-'));
               if (usdcTransfer) {
-                const usdcAmount = parseFloat(usdcTransfer.value || '0') / 1000000; // USDC has 6 decimals
-                const tokenName = metaEsdtTransfer?.name?.replace('DCAi', '') || metaEsdtTransfer?.ticker?.replace('DCAI', '') || 'token';
+                const usdcAmount = parseFloat(usdcTransfer.value || '0') / 1000000;
                 title = 'Deposit received';
                 description = `$${usdcAmount.toFixed(2)} USDC deposited to ${tokenName} strategy`;
                 icon = '+';
               }
             } else if (func === 'createStrategy') {
-              const metaEsdtTransfer = transfersList.find((t: any) => t.type === 'MetaESDT');
-              if (metaEsdtTransfer) {
-                const tokenName = metaEsdtTransfer.name?.replace('DCAi', '') || metaEsdtTransfer.ticker?.replace('DCAI', '') || 'token';
-                title = 'Strategy created';
-                description = `${tokenName} DCA strategy activated`;
-                icon = '⚙';
-              }
+              title = 'Strategy created';
+              description = `${tokenName} DCA strategy activated`;
+              icon = '⚙';
             } else if (func === 'modifyStrategy') {
-              const metaEsdtTransfer = transfersList.find((t: any) => t.type === 'MetaESDT');
-              if (metaEsdtTransfer) {
-                const tokenName = metaEsdtTransfer.name?.replace('DCAi', '') || metaEsdtTransfer.ticker?.replace('DCAI', '') || 'token';
-                title = 'Strategy modified';
-                description = `${tokenName} DCA strategy updated`;
-                icon = '⚙';
-              }
+              title = 'Strategy modified';
+              description = `${tokenName} DCA strategy updated`;
+              icon = '⚙';
             } else if (func === 'deleteStrategy') {
-              const metaEsdtTransfer = transfersList.find((t: any) => t.type === 'MetaESDT');
-              if (metaEsdtTransfer) {
-                const tokenName = metaEsdtTransfer.name?.replace('DCAi', '') || metaEsdtTransfer.ticker?.replace('DCAI', '') || 'token';
-                title = 'Strategy deleted';
-                description = `${tokenName} DCA strategy removed`;
-                icon = '\u00D7'; // Multiplication sign / cross
-              }
+              title = 'Strategy deleted';
+              description = `${tokenName} DCA strategy removed`;
+              icon = '\u00D7';
             }
 
             if (title && description) {
