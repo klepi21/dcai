@@ -47,7 +47,7 @@ export function useTokenPrice(tokenIdentifier: string): TokenPrice {
 
       try {
         // Determine API URL based on network
-        let apiUrl = 'https://devnet-api.multiversx.com';
+        let apiUrl = 'https://api.multiversx.com';
         if (network.apiAddress) {
           if (network.apiAddress.includes('devnet')) {
             apiUrl = 'https://devnet-api.multiversx.com';

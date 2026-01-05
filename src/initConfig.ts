@@ -40,7 +40,7 @@ export const config: InitAppType = {
   storage: { getStorageCallback: () => sessionStorage },
   dAppConfig: {
     nativeAuth: true,
-    environment: EnvironmentsEnum.devnet,
+    environment: EnvironmentsEnum.mainnet,
     providers: {
       walletConnect: {
         walletConnectV2ProjectId

@@ -17,6 +17,7 @@ import { SuccessModal } from './components/modals/SuccessModal';
 import { OnboardingModal } from './components/modals/OnboardingModal';
 import { LoadingState } from './components/LoadingState';
 import { getNetworkPath, getApiUrl } from './utils/network';
+import { USDC_TOKEN_ID } from '@/config';
 import toast from 'react-hot-toast';
 
 export default function DCABoard() {
@@ -235,12 +236,7 @@ export default function DCABoard() {
           const tokenTicker = collection.split('-')[0]?.replace('DCAI', '') || identifier.split('-')[0]?.replace('DCAI', '') || 'UNKNOWN';
 
           // Use the owner address as the contract address for this strategy
-          const attributes = await queryGetStrategyTokenAttributes(nonce, contractAddress, {
-            identifier,
-            collection,
-            ticker: tokenTicker,
-            decimals: dcaiToken.decimals
-          });
+          const attributes = await queryGetStrategyTokenAttributes(nonce, contractAddress);
 
           if (!isMountedRef.current) break; // Check after async call
 
@@ -517,7 +513,7 @@ export default function DCABoard() {
 
     try {
       // Determine API URL based on network
-      let apiUrl = 'https://devnet-api.multiversx.com';
+      let apiUrl = 'https://api.multiversx.com';
       if (network.apiAddress) {
         if (network.apiAddress.includes('devnet')) {
           apiUrl = 'https://devnet-api.multiversx.com';
@@ -952,7 +948,7 @@ export default function DCABoard() {
       const apiUrl = getApiUrl(network);
 
       // Determine specific USDC token ID based on network
-      let targetUsdcId = 'USDC-c76f1f'; // Default to mainnet
+      let targetUsdcId = USDC_TOKEN_ID;
       if (network.apiAddress.includes('devnet')) {
         targetUsdcId = 'USDC-350c4e';
       } else if (network.apiAddress.includes('testnet')) {

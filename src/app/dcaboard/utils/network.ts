@@ -12,7 +12,7 @@ export function getNetworkPath(network: NetworkConfig): string {
       return 'mainnet';
     }
   }
-  return 'devnet'; // Default to devnet
+  return 'mainnet'; // Default to mainnet
 }
 
 export function getApiUrl(network: NetworkConfig): string {
@@ -25,6 +25,6 @@ export function getApiUrl(network: NetworkConfig): string {
       return 'https://api.multiversx.com';
     }
   }
-  return 'https://devnet-api.multiversx.com'; // Default to devnet
+  return 'https://api.multiversx.com'; // Default to mainnet
 }
 

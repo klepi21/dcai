@@ -8,6 +8,8 @@ import {
 
 import { signAndSendTransactions } from '@/helpers/signAndSendTransactions';
 
+import { USDC_TOKEN_ID } from '@/config';
+
 const DEPOSIT_TRANSACTION_INFO = {
   processingMessage: 'Depositing USDC...',
   errorMessage: 'An error occurred while depositing USDC',
@@ -15,7 +17,7 @@ const DEPOSIT_TRANSACTION_INFO = {
 };
 
 // USDC token identifier
-const USDC_TOKEN_IDENTIFIER = 'USDC-350c4e';
+const USDC_TOKEN_IDENTIFIER = USDC_TOKEN_ID;
 
 export const useDeposit = () => {
   const { network } = useGetNetworkConfig();
@@ -46,23 +48,23 @@ export const useDeposit = () => {
       // Format: MultiESDTNFTTransfer@receiver_hex@num_tokens@token1_hex@nonce1_hex@amount1_hex@token2_hex@nonce2_hex@amount2_hex@function_name_hex
       const contractAddressObj = new Address(contractAddress);
       const contractAddressHex = contractAddressObj.toHex();
-      
+
       const usdcIdentifier = USDC_TOKEN_IDENTIFIER;
       const usdcTokenIdHex = Buffer.from(usdcIdentifier).toString('hex').toUpperCase();
       let usdcAmountHex = amountInSmallestUnits.toString(16).toUpperCase();
       if (usdcAmountHex.length % 2 !== 0) {
         usdcAmountHex = '0' + usdcAmountHex;
       }
-      
+
       const collectionHex = Buffer.from(collection).toString('hex').toUpperCase();
       let nonceHexPadded = nonceHex.toUpperCase();
       if (nonceHexPadded.length % 2 !== 0) {
         nonceHexPadded = '0' + nonceHexPadded;
       }
       const metaEsdtAmountHex = '01'; // Send 1 MetaESDT token
-      
+
       const functionNameHex = Buffer.from('deposit').toString('hex');
-      
+
       // Build the MultiESDTNFTTransfer data field
       // @receiver@num_tokens@token1@nonce1@amount1@token2@nonce2@amount2@function
       const multiTransferData = `MultiESDTNFTTransfer@${contractAddressHex}@02@${usdcTokenIdHex}@00@${usdcAmountHex}@${collectionHex}@${nonceHexPadded}@${metaEsdtAmountHex}@${functionNameHex}`;

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useGetNetworkConfig, Address } from '@/lib';
 
 // Parent DCA Contract address
-const PARENT_CONTRACT_ADDRESS = 'erd1qqqqqqqqqqqqqpgqlvf9wdk30sq9j7h8r3tj2zmjzlpy8dm8u7zs4qhued';
+const PARENT_CONTRACT_ADDRESS = 'erd1qqqqqqqqqqqqqpgqpwhknfcusvvu9efccfy9c72dh7neggyru7zsv8v9rg';
 
 // Individual DCA Contract address (for querying strategy attributes)
 const DCA_CONTRACT_ADDRESS = 'erd1qqqqqqqqqqqqqpgq85r6zsrnvd8jqhl8dpuk3j06s2dqpq33u7zskhn3f9';
@@ -90,7 +90,7 @@ export const useDcaContract = () => {
 
   // Helper to determine Gateway URL
   const getGatewayUrl = () => {
-    let gatewayUrl = 'https://devnet-gateway.multiversx.com';
+    let gatewayUrl = 'https://gateway.multiversx.com';
     if (network.apiAddress) {
       if (network.apiAddress.includes('devnet')) {
         gatewayUrl = 'https://devnet-gateway.multiversx.com';
