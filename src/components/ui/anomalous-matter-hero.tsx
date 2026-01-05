@@ -202,7 +202,7 @@ export function AnomalousMatterHero({
 
       <div className='absolute inset-0 z-10 bg-gradient-to-t from-[hsl(var(--background))] via-[hsl(var(--background))/70] to-transparent' />
 
-      <div className='relative z-20 flex h-full flex-col items-center justify-center text-center'>
+      <div className='relative z-20 flex h-full flex-col items-center justify-center pb-32 text-center'>
         <div className='animate-fade-in-long max-w-3xl px-4'>
           <h1 className='font-mono text-sm font-semibold uppercase tracking-[0.35em] text-[hsl(var(--sky-300)/0.9)]'>
             {title}
