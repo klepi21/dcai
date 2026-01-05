@@ -144,7 +144,6 @@
         },
         {
             "name": "setBotAddress",
-            "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
                 {
@@ -166,7 +165,7 @@
                 "performs the swap, and updates each strategy's attributes accordingly.",
                 "",
                 "It will skip strategies that do not meet the criteria and will return any",
-                "dust amounts to the caller. It will fail only if no strategies at all are eligible for execution."
+                "dust amount to the caller. It will fail only if no strategies at all are eligible for execution."
             ],
             "name": "buy",
             "mutability": "mutable",
@@ -192,7 +191,7 @@
                 "fees, and updates each strategy's attributes accordingly.",
                 "",
                 "It will skip strategies that do not meet the take profit condition and will return any",
-                "dust amounts to the caller. It will fail only if no strategies at all are eligible for take profit."
+                "dust amount to the caller. It will fail only if no strategies at all are eligible for take profit."
             ],
             "name": "takeProfit",
             "mutability": "mutable",
@@ -206,6 +205,11 @@
             "outputs": []
         },
         {
+            "docs": [
+                "Returns true if the given address can execute bot operations.",
+                "",
+                "This includes the bot address and any admin addresses (as a fallback mechanism)."
+            ],
             "name": "isBot",
             "mutability": "readonly",
             "inputs": [
@@ -268,7 +272,6 @@
         },
         {
             "name": "setToken",
-            "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
                 {
@@ -280,7 +283,6 @@
         },
         {
             "name": "setMinAmountPerSwap",
-            "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
                 {
@@ -292,7 +294,6 @@
         },
         {
             "name": "addAllowedFrequencies",
-            "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
                 {
@@ -305,7 +306,6 @@
         },
         {
             "name": "removeAllowedFrequencies",
-            "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
                 {
@@ -318,7 +318,6 @@
         },
         {
             "name": "setProfitFeePercentage",
-            "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
                 {
@@ -330,7 +329,6 @@
         },
         {
             "name": "setCustomSlippagePercentage",
-            "onlyOwner": true,
             "mutability": "mutable",
             "inputs": [
                 {
@@ -349,7 +347,7 @@
                 "1. The minimum amount per swap.",
                 "1. The strategy token identifier.",
                 "1. The profit fee percentage.",
-                "1. The final slippage percentage (to be used in swaps | either custom or default).",
+                "1. The final slippage percentage to be used in swaps (either custom or default).",
                 "1. The allowed frequencies as a multi-value encoded of `DcaFrequencyInMillis` (frequency string and duration in millis)."
             ],
             "name": "getSetup",
@@ -372,41 +370,17 @@
                     "type": "u64"
                 },
                 {
+                    "type": "bool"
+                },
+                {
+                    "type": "variadic<Address>",
+                    "multi_result": true
+                },
+                {
                     "type": "variadic<multi<bytes,u64>>",
                     "multi_result": true
                 }
             ]
-        },
-        {
-            "name": "burn",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "payableInTokens": [
-                "*"
-            ],
-            "inputs": [
-                {
-                    "name": "nonce",
-                    "type": "u64"
-                }
-            ],
-            "outputs": []
-        },
-        {
-            "name": "withdrawBalance",
-            "onlyOwner": true,
-            "mutability": "mutable",
-            "inputs": [
-                {
-                    "name": "token",
-                    "type": "EgldOrEsdtTokenIdentifier"
-                },
-                {
-                    "name": "amount",
-                    "type": "BigUint"
-                }
-            ],
-            "outputs": []
         },
         {
             "docs": [
@@ -441,7 +415,7 @@
         {
             "docs": [
                 "Endpoint to modify an existing DCA strategy.",
-                "The endpoint is payable and requires the strategy token NFT to identify the strategy.",
+                "The endpoint is payable and requires the transfer of the strategy token NFT to identify the strategy.",
                 "",
                 "### Arguments",
                 "* `amount_per_swap` - The new amount of USDC to be swapped in each DCA operation.",
@@ -472,7 +446,7 @@
         {
             "docs": [
                 "Endpoint to delete a DCA strategy.",
-                "The endpoint is payable and requires the strategy token NFT to identify the strategy."
+                "The endpoint is payable and requires the transfer of the strategy token NFT to identify the strategy."
             ],
             "name": "deleteStrategy",
             "mutability": "mutable",
@@ -485,7 +459,7 @@
         {
             "docs": [
                 "Endpoint to deposit USDC into a strategy.",
-                "The endpoint is payable and requires the strategy token NFT to identify the strategy."
+                "The endpoint is payable and requires the transfer of the strategy token NFT to identify the strategy."
             ],
             "name": "deposit",
             "mutability": "mutable",
@@ -498,7 +472,7 @@
         {
             "docs": [
                 "Endpoint to withdraw USDC or DCA tokens from a strategy.",
-                "The endpoint is payable and requires the strategy token NFT to identify the strategy.",
+                "The endpoint is payable and requires the transfer of the strategy token NFT to identify the strategy.",
                 "",
                 "### Arguments",
                 "* `amount` - The amount to withdraw.",
@@ -538,7 +512,7 @@
                 "- `usdc_balance`: The current USDC balance allocated for DCA operations.",
                 "- `dca_token_balance`: The current balance of the token being acquired through DCA.",
                 "- `last_executed_ts_millis`: The timestamp in milliseconds of the last executed DCA operation.",
-                "- `take_profit_condition_met`: A boolean indicating whether the take profit condition is currently met.",
+                "- `take_profit_condition_met`: A boolean indicating whether the take profit condition is currently met (if applicable).",
                 "- `buys`: A list of executed buy operations, each represented by a `Swap` struct (including usdc amount, dca token amount, and timestamp).",
                 "- `sells`: A list of executed sell operations, each represented by a `Swap` struct (including usdc amount, dca token amount, and timestamp)."
             ],
@@ -587,6 +561,28 @@
             ]
         },
         {
+            "docs": [
+                "View to get all strategies held by the smart contract.",
+                "",
+                "It iterates through all minted strategy token NFTs and collects the attributes of those",
+                "that have a balance greater than zero.",
+                "",
+                "### Returns",
+                "A `MultiValueEncoded` containing `StrategyTokenAttributesAsType` for each strategy.",
+                "",
+                "Each `StrategyTokenAttributesAsType` includes:",
+                "- `nonce`: The nonce of the strategy token NFT.",
+                "- `amount_per_swap`: The amount of USDC to be swapped in each DCA operation.",
+                "- `dca_frequency`: The frequency at which DCA operations are executed.",
+                "- `frequency_in_millis`: The frequency in milliseconds for precise timing.",
+                "- `take_profit_percentage`: The percentage at which to take profit from DCA operations.",
+                "- `usdc_balance`: The current USDC balance allocated for DCA operations.",
+                "- `dca_token_balance`: The current balance of the token being acquired through DCA.",
+                "- `last_executed_ts_millis`: The timestamp in milliseconds of the last executed buy or take profit operation.",
+                "- `take_profit_condition_met`: A boolean indicating whether the take profit condition is currently met (if applicable).",
+                "- `buys`: A list of executed buy operations, each represented by a `Swap` struct.",
+                "- `sells`: A list of executed sell operations, each represented by a `Swap` struct."
+            ],
             "name": "getAllStrategies",
             "mutability": "readonly",
             "inputs": [],
@@ -598,6 +594,15 @@
             ]
         },
         {
+            "docs": [
+                "View to get all strategy nonces held by the smart contract.",
+                "",
+                "It iterates through all minted strategy token NFTs and collects the nonces of those",
+                "that have a balance greater than zero.",
+                "",
+                "### Returns",
+                "A `MultiValueEncoded` containing the nonces of each strategy."
+            ],
             "name": "getAllStrategiesOnlyNonces",
             "mutability": "readonly",
             "inputs": [],
