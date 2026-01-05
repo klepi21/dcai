@@ -1,4 +1,3 @@
-```
 'use client';
 import React, { useEffect, useRef } from 'react';
 
@@ -93,11 +92,11 @@ const AIChipVisualization = () => {
       // Draw wires/connections (darker)
       ctx.strokeStyle = 'rgba(234, 179, 8, 0.15)';
       ctx.lineWidth = 2;
-      
+
       nodes.forEach((node) => {
         ctx.beginPath();
         ctx.moveTo(centerX, centerY + chipHeight / 2);
-        
+
         const controlY = centerY + chipHeight / 2 + 100;
         ctx.quadraticCurveTo(
           node.x,
@@ -111,15 +110,15 @@ const AIChipVisualization = () => {
       // Draw light segments traveling along wires
       lightSegments.forEach((segment) => {
         segment.update();
-        
+
         const node = nodes[segment.nodeIndex];
         const controlY = centerY + chipHeight / 2 + 100;
-        
+
         // Draw the light segment as a gradient along the path
         const steps = 20;
         for (let i = 0; i < steps; i++) {
           const t = segment.progress + (i / steps) * segment.length;
-          
+
           if (t >= 0 && t <= 1) {
             const point = getQuadraticPoint(
               t,
@@ -130,16 +129,16 @@ const AIChipVisualization = () => {
               node.x,
               node.y - 30
             );
-            
+
             // Fade in/out at edges of segment
             const edgeFade = Math.min(i / 5, (steps - i) / 5, 1);
             const opacity = segment.brightness * edgeFade;
-            
+
             ctx.shadowBlur = 15;
-            ctx.shadowColor = `rgba(234, 179, 8, ${ opacity })`;
-            ctx.strokeStyle = `rgba(234, 179, 8, ${ opacity })`;
+            ctx.shadowColor = `rgba(234, 179, 8, ${opacity})`;
+            ctx.strokeStyle = `rgba(234, 179, 8, ${opacity})`;
             ctx.lineWidth = 3;
-            
+
             if (i > 0) {
               const prevT = segment.progress + ((i - 1) / steps) * segment.length;
               const prevPoint = getQuadraticPoint(
@@ -151,7 +150,7 @@ const AIChipVisualization = () => {
                 node.x,
                 node.y - 30
               );
-              
+
               ctx.beginPath();
               ctx.moveTo(prevPoint.x, prevPoint.y);
               ctx.lineTo(point.x, point.y);
@@ -166,12 +165,12 @@ const AIChipVisualization = () => {
       // Draw chip
       const chipX = centerX - chipWidth / 2;
       const chipY = centerY - chipHeight / 2;
-      
+
       // Chip glow
       const glowIntensity = 0.4 + Math.sin(time * 2) * 0.15;
       ctx.shadowBlur = 40;
-      ctx.shadowColor = `rgba(234, 179, 8, ${ glowIntensity })`;
-      
+      ctx.shadowColor = `rgba(234, 179, 8, ${glowIntensity})`;
+
       // Chip body
       ctx.fillStyle = 'rgba(20, 20, 20, 0.95)';
       ctx.strokeStyle = 'rgba(234, 179, 8, 0.7)';
@@ -220,22 +219,12 @@ const AIChipVisualization = () => {
   }, []);
 
   return (
-    <div className='w-full max-w-4xl'>
-      <div className='text-center mb-8'>
-        <div className='inline-block mb-4'>
-          <span className='text-2xl'>✨</span>
-        </div>
-        <h1 className='text-4xl font-bold mb-4'>AI powered yield</h1>
-        <p className='text-lg text-[hsl(var(--gray-300)/0.7)] max-w-2xl mx-auto'>
-          Our AI tool recommends and explains what the best yield options and sets automates your portfolio management.
-        </p>
-      </div>
-      
-      <div className='relative w-full bg-black rounded-2xl border border-[hsl(var(--gray-300)/0.2)] p-8 overflow-hidden'>
+    <div className='w-full'>
+      <div className='relative w-full bg-black/40 rounded-2xl border border-gray-800/50 p-6 overflow-hidden backdrop-blur-sm'>
         <canvas
           ref={canvasRef}
-          className='w-full h-[600px]'
-          style={{ width: '100%', height: '600px' }}
+          className='w-full h-[500px]'
+          style={{ width: '100%', height: '500px' }}
         />
       </div>
     </div>
@@ -243,4 +232,3 @@ const AIChipVisualization = () => {
 };
 
 export default AIChipVisualization;
-```
