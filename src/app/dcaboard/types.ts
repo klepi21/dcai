@@ -34,7 +34,7 @@ export interface DcaStrategy {
 }
 
 export interface ActivityItem {
-  type: 'deposit' | 'createStrategy' | 'modifyStrategy' | 'deleteStrategy';
+  type: 'deposit' | 'createStrategy' | 'modifyStrategy' | 'deleteStrategy' | 'buy' | 'sell';
   title: string;
   description: string;
   timestamp: number;

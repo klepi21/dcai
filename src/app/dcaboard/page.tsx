@@ -110,13 +110,7 @@ export default function DCABoard() {
   // State for user's USDC wallet balance
   const [usdcWalletBalance, setUsdcWalletBalance] = useState<number>(0);
   // State for activity items
-  const [activities, setActivities] = useState<Array<{
-    type: 'deposit' | 'createStrategy' | 'modifyStrategy' | 'deleteStrategy';
-    title: string;
-    description: string;
-    timestamp: number;
-    icon: string;
-  }>>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
   // State for activity pagination
   const [currentActivityPage, setCurrentActivityPage] = useState<number>(1);
   const itemsPerPage = 6;
@@ -338,12 +332,15 @@ export default function DCABoard() {
 
       const functions = ['deposit', 'createStrategy', 'modifyStrategy', 'deleteStrategy'];
       const allActivities: Array<{
-        type: 'deposit' | 'createStrategy' | 'modifyStrategy' | 'deleteStrategy';
+        type: 'deposit' | 'createStrategy' | 'modifyStrategy' | 'deleteStrategy' | 'buy' | 'sell';
         title: string;
         description: string;
         timestamp: number;
         icon: string;
       }> = [];
+
+      const JAN_4_2026_SECONDS = 1767484800;
+      const JAN_4_2026_MS = JAN_4_2026_SECONDS * 1000;
 
       // Fetch transactions for each function with 0.35 second delay
       for (let i = 0; i < functions.length; i++) {
@@ -354,7 +351,7 @@ export default function DCABoard() {
         if (!isMountedRef.current) break;
 
         const func = functions[i];
-        const transfersUrl = `${apiUrl}/accounts/${address}/transfers?status=success&function=${func}`;
+        const transfersUrl = `${apiUrl}/accounts/${address}/transfers?status=success&function=${func}&after=${JAN_4_2026_SECONDS}&size=100`;
 
         try {
           const response = await fetch(transfersUrl, {
@@ -380,6 +377,10 @@ export default function DCABoard() {
             if (timestamp < 946684800000) {
               timestamp = timestamp * 1000;
             }
+
+            // Skip if before Jan 4, 2026
+            if (timestamp < JAN_4_2026_MS) continue;
+
             const transfersList = transfer.action.arguments.transfers || [];
 
             let title = '';
@@ -440,6 +441,37 @@ export default function DCABoard() {
         }
       }
 
+      // Merge swaps from strategies as activity items
+      strategies.forEach(strategy => {
+        // Add Buys
+        strategy.buys?.forEach(buy => {
+          const ts = parseInt(buy.timestampMillis);
+          if (ts >= JAN_4_2026_MS) {
+            allActivities.push({
+              type: 'buy',
+              title: `Bought ${strategy.token}`,
+              description: `Exchanged $${(parseFloat(buy.usdcAmount) / 1000000).toFixed(2)} USDC for ${strategy.token}`,
+              timestamp: ts,
+              icon: '🛒'
+            });
+          }
+        });
+
+        // Add Sells (Take Profit)
+        strategy.sells?.forEach(sell => {
+          const ts = parseInt(sell.timestampMillis);
+          if (ts >= JAN_4_2026_MS) {
+            allActivities.push({
+              type: 'sell',
+              title: `Profit Locked: ${strategy.token}`,
+              description: `Sold ${strategy.token} for $${(parseFloat(sell.usdcAmount) / 1000000).toFixed(2)} USDC`,
+              timestamp: ts,
+              icon: '💰'
+            });
+          }
+        });
+      });
+
       // Sort by timestamp (newest first)
       allActivities.sort((a, b) => b.timestamp - a.timestamp);
 
@@ -448,6 +480,7 @@ export default function DCABoard() {
         // Reset to page 1 when activities change
         setCurrentActivityPage(1);
       }
+
     } catch (error) {
       if (isMountedRef.current) {
         setActivities([]);
