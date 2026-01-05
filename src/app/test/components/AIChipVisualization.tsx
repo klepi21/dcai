@@ -87,7 +87,7 @@ const AIChipVisualization = () => {
 
       time += 0.02;
 
-      // Draw wires - THICKER
+      // Draw wires from chip to nodes - THICKER
       ctx.strokeStyle = 'rgba(234, 179, 8, 0.15)';
       ctx.lineWidth = 2.5;
 
@@ -98,6 +98,46 @@ const AIChipVisualization = () => {
         ctx.quadraticCurveTo(node.x, controlY, node.x, node.y - 40);
         ctx.stroke();
       });
+
+      // Draw connecting wires between nodes (flow loop)
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.12)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < nodes.length - 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x + 36, nodes[i].y); // Start from right edge of circle
+        ctx.lineTo(nodes[i + 1].x - 36, nodes[i + 1].y); // End at left edge of next circle
+        ctx.stroke();
+
+        // Draw arrow
+        const arrowSize = 8;
+        const endX = nodes[i + 1].x - 36;
+        const endY = nodes[i + 1].y;
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(endX - arrowSize, endY - arrowSize / 2);
+        ctx.lineTo(endX - arrowSize, endY + arrowSize / 2);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(234, 179, 8, 0.3)';
+        ctx.fill();
+      }
+
+      // Draw return wire from last node back to first (completing the loop)
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.08)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      const lastNode = nodes[nodes.length - 1];
+      const firstNode = nodes[0];
+      const arcY = nodeY + 60;
+      ctx.moveTo(lastNode.x, lastNode.y + 36);
+      ctx.quadraticCurveTo(
+        (lastNode.x + firstNode.x) / 2,
+        arcY,
+        firstNode.x,
+        firstNode.y + 36
+      );
+      ctx.stroke();
+      ctx.setLineDash([]);
 
       // Draw light segments
       lightSegments.forEach((segment) => {
@@ -206,8 +246,8 @@ const AIChipVisualization = () => {
       <div className='relative w-full bg-black/40 rounded-2xl border border-gray-800/50 p-6 overflow-hidden backdrop-blur-sm'>
         <canvas
           ref={canvasRef}
-          className='w-full h-[500px]'
-          style={{ width: '100%', height: '500px' }}
+          className='w-full h-[600px]'
+          style={{ width: '100%', height: '600px' }}
         />
       </div>
     </div>
