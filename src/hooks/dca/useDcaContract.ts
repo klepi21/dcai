@@ -89,18 +89,10 @@ export const useDcaContract = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Helper to determine Gateway URL
+  // Helper to determine Gateway URL
   const getGatewayUrl = () => {
-    let gatewayUrl = 'https://gateway.multiversx.com';
-    if (network.apiAddress) {
-      if (network.apiAddress.includes('devnet')) {
-        gatewayUrl = 'https://devnet-gateway.multiversx.com';
-      } else if (network.apiAddress.includes('testnet')) {
-        gatewayUrl = 'https://testnet-gateway.multiversx.com';
-      } else {
-        gatewayUrl = 'https://gateway.multiversx.com';
-      }
-    }
-    return gatewayUrl;
+    // Force Mainnet Gateway URL to ensure correct contract interaction
+    return 'https://gateway.multiversx.com';
   };
 
   /**
