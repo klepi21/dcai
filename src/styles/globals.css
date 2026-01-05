@@ -134,7 +134,7 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  opacity: 0.04;
+  opacity: 0.1;
   background-image:
     url('/assets/img/sloth.png'),
     url('/assets/img/slothyoga.png'),
@@ -158,6 +158,6 @@
 }
 
 .dark .sloth-background-layer {
-  opacity: 0.06;
+  opacity: 0.12;
   filter: grayscale(1) invert(1);
 }
