@@ -48,32 +48,19 @@ const AIChipVisualization = () => {
       }
     }
 
-    // Coordinates - SCALED UP and CENTERED
-    const centerX = 400;
-    const centerY = 280;
-    const chipWidth = 140;
-    const chipHeight = 140;
-    const nodeY = 520;
-    const nodeSpacing = 180;
-
-    // Updated nodes with flow labels
-    const nodes = [
-      { x: centerX - nodeSpacing * 1.5, y: nodeY, label: 'Supply', sublabel: 'xEGLD' },
-      { x: centerX - nodeSpacing * 0.5, y: nodeY, label: 'Borrow', sublabel: 'USDC' },
-      { x: centerX + nodeSpacing * 0.5, y: nodeY, label: 'Buy', sublabel: 'EGLD' },
-      { x: centerX + nodeSpacing * 1.5, y: nodeY, label: 'Stake', sublabel: 'xEGLD' }
-    ];
-
     // Create light segments (1 per wire for performance)
     const lightSegments: LightSegment[] = [];
-    nodes.forEach((_, i) => {
+    // Nodes will be defined inside draw, so we can't use nodes.forEach here directly.
+    // We'll initialize a fixed number of segments for now, assuming 4 nodes.
+    // This might need adjustment if the number of nodes becomes dynamic.
+    for (let i = 0; i < 4; i++) { // Assuming 4 nodes based on original code
       lightSegments.push(new LightSegment(i));
-    });
+    }
 
     // Helper to get point on quadratic curve
     const getQuadraticPoint = (t: number, startX: number, startY: number, controlX: number, controlY: number, endX: number, endY: number) => {
       const x = Math.pow(1 - t, 2) * startX + 2 * (1 - t) * t * controlX + Math.pow(t, 2) * endX;
-      const y = Math.pow(1 - t, 2) * startY + 2 * (1 - t) * t * controlY + Math.pow(t, 2) * endY;
+      const y = Math.pow(1 - t, 2) * startY + 2 * (1 - t) * t * controlX + Math.pow(t, 2) * endY;
       return { x, y };
     };
 
@@ -86,6 +73,22 @@ const AIChipVisualization = () => {
       ctx.fillRect(0, 0, rect.width, rect.height);
 
       time += 0.02;
+
+      // Calculate dynamic center based on actual canvas width
+      const centerX = rect.width / 2;
+      const centerY = 280;
+      const chipWidth = 140;
+      const chipHeight = 140;
+      const nodeY = 520;
+      const nodeSpacing = 180;
+
+      // Updated nodes with flow labels - NOW CENTERED
+      const nodes = [
+        { x: centerX - nodeSpacing * 1.5, y: nodeY, label: 'Supply', sublabel: 'xEGLD' },
+        { x: centerX - nodeSpacing * 0.5, y: nodeY, label: 'Borrow', sublabel: 'USDC' },
+        { x: centerX + nodeSpacing * 0.5, y: nodeY, label: 'Buy', sublabel: 'EGLD' },
+        { x: centerX + nodeSpacing * 1.5, y: nodeY, label: 'Stake', sublabel: 'xEGLD' }
+      ];
 
       // Draw wires from chip to nodes - THICKER
       ctx.strokeStyle = 'rgba(234, 179, 8, 0.15)';
@@ -147,7 +150,6 @@ const AIChipVisualization = () => {
         const controlY = centerY + chipHeight / 2 + 100;
 
         const steps = 12;
-        // const gradient = ctx.createLinearGradient(centerX, centerY, node.x, node.y); // This line is not used
 
         for (let i = 0; i < steps; i++) {
           const t = segment.progress + (i / steps) * 0.15;
@@ -202,7 +204,6 @@ const AIChipVisualization = () => {
       ctx.fill();
       ctx.stroke();
 
-      // Chip text
       ctx.fillStyle = 'rgba(234, 179, 8, 0.95)';
       ctx.font = 'bold 14px Inter';
       ctx.textAlign = 'center';
@@ -232,6 +233,18 @@ const AIChipVisualization = () => {
 
       animationFrame = requestAnimationFrame(draw);
     };
+
+    // Helper function for quadratic curve points
+    const getQuadraticPoint = (t: number, startX: number, startY: number, controlX: number, controlY: number, endX: number, endY: number) => {
+      const x = Math.pow(1 - t, 2) * startX + 2 * (1 - t) * t * controlX + Math.pow(t, 2) * endX;
+      const y = Math.pow(1 - t, 2) * startY + 2 * (1 - t) * t * controlY + Math.pow(t, 2) * endY;
+      return { x, y };
+    };
+
+    const lightSegments: LightSegment[] = [];
+    for (let i = 0; i < 4; i++) {
+      lightSegments.push(new LightSegment(i));
+    }
 
     draw();
 
