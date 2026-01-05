@@ -11,8 +11,7 @@ import libAbi from '@/contracts/lib.abi.json';
 
 const WITHDRAW_TRANSACTION_INFO = {
   processingMessage: 'Withdrawing...',
-  errorMessage: 'An error occurred while withdrawing',
-  successMessage: 'Withdrawal successful'
+  errorMessage: 'An error occurred while withdrawing'
 };
 
 // Token withdrawn enum values (from ABI: TokenWithdrawn enum)
@@ -52,26 +51,26 @@ export const useWithdraw = () => {
       // Format: MultiESDTNFTTransfer@receiver_hex@num_tokens@token_hex@nonce_hex@amount_hex@function_name_hex@arg1_hex@arg2_hex
       const contractAddressObj = new Address(contractAddress);
       const contractAddressHex = contractAddressObj.toHex();
-      
+
       const collectionHex = Buffer.from(collection).toString('hex').toUpperCase();
       let nonceHexPadded = nonceHex.toUpperCase();
       if (nonceHexPadded.length % 2 !== 0) {
         nonceHexPadded = '0' + nonceHexPadded;
       }
       const metaEsdtAmountHex = '01'; // Send 1 MetaESDT token
-      
+
       // Encode function name and arguments
       const functionNameHex = Buffer.from('withdraw').toString('hex');
-      
+
       // Encode amount argument (BigUint as hex)
       let amountHex = amountInSmallestUnits.toString(16).toUpperCase();
       if (amountHex.length % 2 !== 0) {
         amountHex = '0' + amountHex;
       }
-      
+
       // Encode token_withdrawn enum argument (u8/u16 as hex - minimal representation)
       const tokenWithdrawnHex = tokenWithdrawn.toString(16).padStart(2, '0').toUpperCase();
-      
+
       // Build the MultiESDTNFTTransfer data field
       // @receiver@num_tokens@token@nonce@amount@function@arg1@arg2
       const multiTransferData = `MultiESDTNFTTransfer@${contractAddressHex}@01@${collectionHex}@${nonceHexPadded}@${metaEsdtAmountHex}@${functionNameHex}@${amountHex}@${tokenWithdrawnHex}`;

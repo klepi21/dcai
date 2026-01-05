@@ -17,8 +17,7 @@ import libAbi from '@/contracts/lib.abi.json';
 
 const CREATE_STRATEGY_TRANSACTION_INFO = {
   processingMessage: 'Creating DCA strategy...',
-  errorMessage: 'An error occurred while creating the strategy',
-  successMessage: 'Strategy created successfully'
+  errorMessage: 'An error occurred while creating the strategy'
 };
 
 export const useCreateStrategy = () => {

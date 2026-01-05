@@ -12,8 +12,7 @@ import { USDC_TOKEN_ID } from '@/config';
 
 const DEPOSIT_TRANSACTION_INFO = {
   processingMessage: 'Depositing USDC...',
-  errorMessage: 'An error occurred while depositing USDC',
-  successMessage: 'USDC deposited successfully'
+  errorMessage: 'An error occurred while depositing USDC'
 };
 
 // USDC token identifier

@@ -10,8 +10,7 @@ import { signAndSendTransactions } from '@/helpers/signAndSendTransactions';
 
 const MODIFY_STRATEGY_TRANSACTION_INFO = {
   processingMessage: 'Modifying strategy...',
-  errorMessage: 'An error occurred while modifying the strategy',
-  successMessage: 'Strategy modified successfully'
+  errorMessage: 'An error occurred while modifying the strategy'
 };
 
 export const useModifyStrategy = () => {

@@ -43,6 +43,19 @@
   animation: fadeIn 1.2s ease-out forwards;
 }
 
+@keyframes sloth-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-sloth-spin {
+  animation: sloth-spin 3s linear infinite;
+}
+
 
 
 @layer base {

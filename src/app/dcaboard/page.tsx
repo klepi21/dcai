@@ -115,6 +115,9 @@ export default function DCABoard() {
   const [currentActivityPage, setCurrentActivityPage] = useState<number>(1);
   const itemsPerPage = 6;
 
+  // Track strategy IDs that are currently in-flight (deposit/withdraw/modify)
+  const [pendingStrategyIds, setPendingStrategyIds] = useState<Set<string>>(new Set());
+
   // State for onboarding modal
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
@@ -910,6 +913,7 @@ export default function DCABoard() {
       : 0;
 
     try {
+      setPendingStrategyIds(prev => new Set(prev).add(strategy.id));
       const { sessionId } = await modifyStrategy(
         strategy.contractAddress,
         amountPerDca,
@@ -917,16 +921,22 @@ export default function DCABoard() {
         takeProfitPct,
         strategy.tokenIdentifier
       );
-      setModifyModal({ isOpen: false, strategyId: null, amountPerDca: '', frequency: '', takeProfitPct: '', showTakeProfit: false });
+      setModifyModal({ ...modifyModal, isOpen: false });
 
       // Wait for transaction success and then refetch
       const success = await waitForTransactionSuccess(sessionId);
       if (success && isMountedRef.current) {
-        refetchData();
+        await refetchData();
       }
     } catch (error) {
       // Error handling is done by the transaction system
       setModifyModal({ isOpen: false, strategyId: null, amountPerDca: '', frequency: '', takeProfitPct: '', showTakeProfit: false });
+    } finally {
+      setPendingStrategyIds(prev => {
+        const next = new Set(prev);
+        next.delete(strategy.id);
+        return next;
+      });
     }
   };
 
@@ -951,17 +961,24 @@ export default function DCABoard() {
     }
 
     try {
+      setPendingStrategyIds(prev => new Set(prev).add(strategy.id));
       const { sessionId } = await deleteStrategy(strategy.contractAddress, strategy.tokenIdentifier);
       setDeleteModal({ isOpen: false, strategyId: null });
 
       // Wait for transaction success and then refetch
       const success = await waitForTransactionSuccess(sessionId);
       if (success && isMountedRef.current) {
-        refetchData();
+        await refetchData();
       }
     } catch (error) {
       // Error handling is done by the transaction system
       setDeleteModal({ isOpen: false, strategyId: null });
+    } finally {
+      setPendingStrategyIds(prev => {
+        const next = new Set(prev);
+        next.delete(strategy.id);
+        return next;
+      });
     }
   };
 
@@ -1111,17 +1128,27 @@ export default function DCABoard() {
     }
 
     try {
+      // Add to pending set
+      setPendingStrategyIds(prev => new Set(prev).add(strategy.id));
+
       const { sessionId } = await deposit(strategy.contractAddress, amount, strategy.tokenIdentifier);
       setDepositModal({ isOpen: false, strategyId: null, amount: '' });
 
       // Wait for transaction success and then refetch
       const success = await waitForTransactionSuccess(sessionId);
       if (success && isMountedRef.current) {
-        refetchData();
+        await refetchData();
       }
     } catch (error) {
       // Error handling is done by the transaction system
       setDepositModal({ isOpen: false, strategyId: null, amount: '' });
+    } finally {
+      // Remove from pending set
+      setPendingStrategyIds(prev => {
+        const next = new Set(prev);
+        next.delete(strategy.id);
+        return next;
+      });
     }
   };
 
@@ -1154,17 +1181,27 @@ export default function DCABoard() {
     }
 
     try {
+      // Add to pending set
+      setPendingStrategyIds(prev => new Set(prev).add(strategy.id));
+
       const { sessionId } = await withdraw(strategy.contractAddress, amount, withdrawModal.asset, strategy.tokenIdentifier);
       setWithdrawModal({ isOpen: false, strategyId: null, asset: null, amount: '' });
 
       // Wait for transaction success and then refetch
       const success = await waitForTransactionSuccess(sessionId);
       if (success && isMountedRef.current) {
-        refetchData();
+        await refetchData();
       }
     } catch (error) {
       // Error handling is done by the transaction system
       setWithdrawModal({ isOpen: false, strategyId: null, asset: null, amount: '' });
+    } finally {
+      // Remove from pending set
+      setPendingStrategyIds(prev => {
+        const next = new Set(prev);
+        next.delete(strategy.id);
+        return next;
+      });
     }
   };
 
@@ -1236,6 +1273,7 @@ export default function DCABoard() {
               strategies={strategies}
               expandedGroups={expandedGroups}
               strategyIndices={strategyIndices}
+              pendingStrategyIds={pendingStrategyIds}
               onToggleGroup={(groupKey) => {
                 const newExpanded = new Set(expandedGroups);
                 if (newExpanded.has(groupKey)) {
