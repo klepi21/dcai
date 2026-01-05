@@ -2,163 +2,118 @@
 import React, { useState } from 'react';
 import { AuthRedirectWrapper } from '@/wrappers';
 import AIChipVisualization from './components/AIChipVisualization';
-import { X } from 'lucide-react';
+import { ArrowRight, Zap, TrendingUp, Shield } from 'lucide-react';
 
 export default function TestPage() {
-    const [depositAmount, setDepositAmount] = useState('1000');
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [depositAmount, setDepositAmount] = useState('');
+    const [isDeploying, setIsDeploying] = useState(false);
+
+    const handleDeploy = () => {
+        setIsDeploying(true);
+        // Simulate deployment
+        setTimeout(() => {
+            setIsDeploying(false);
+        }, 2000);
+    };
 
     return (
         <AuthRedirectWrapper requireAuth={false}>
-            <div className='min-h-screen w-full bg-black text-white relative overflow-hidden'>
-                {/* Header */}
-                <header className='absolute top-0 left-0 right-0 z-50 p-6 flex items-center justify-between'>
-                    <div className='flex items-center gap-3'>
-                        <div className='text-2xl font-bold tracking-wider'>XOXNO</div>
-                    </div>
-                    <button className='px-6 py-2 bg-gradient-to-r from-amber-600 to-amber-700 rounded-full text-sm font-semibold hover:from-amber-500 hover:to-amber-600 transition-all'>
-                        DeFi
-                    </button>
-                </header>
+            <div className='min-h-screen w-full bg-black text-white flex items-center justify-center p-4 overflow-hidden relative'>
+                {/* Subtle background gradient */}
+                <div className='absolute inset-0 bg-gradient-radial from-amber-950/10 via-transparent to-transparent opacity-40' />
 
-                {/* Main Content */}
-                <div className='relative z-10 flex flex-col items-center justify-center min-h-screen px-4 pt-24'>
-                    {/* Amount Display */}
-                    <div className='text-center mb-12'>
-                        <div className='inline-block px-4 py-1 bg-amber-900/30 border border-amber-700/50 rounded-full text-xs text-amber-400 mb-4'>
-                            DeFi
-                        </div>
-                        <div className='text-6xl font-bold text-emerald-400 mb-2'>
-                            ${depositAmount}
-                        </div>
-                        <div className='text-gray-500 text-sm'>in $XOXNO</div>
-                    </div>
+                {/* Main Content - Centered */}
+                <div className='relative z-10 w-full max-w-5xl mx-auto flex flex-col items-center justify-center space-y-12'>
 
-                    {/* Description */}
-                    <div className='max-w-3xl text-center mb-16'>
-                        <h1 className='text-3xl md:text-4xl font-light text-gray-300 mb-6 leading-relaxed'>
-                            Leverage XOXNO's lending infrastructure to create autonomous onchain strategies
-                            that compound EGLD exposure.
+                    {/* Hero Title */}
+                    <div className='text-center space-y-4'>
+                        <h1 className='text-5xl md:text-6xl font-light tracking-tight'>
+                            Autonomous <span className='text-amber-400 font-medium'>EGLD</span> Compounding
                         </h1>
+                        <p className='text-xl text-gray-400 max-w-2xl mx-auto'>
+                            Deploy your xEGLD into an AI-managed strategy that automatically compounds your position through lending and staking.
+                        </p>
                     </div>
 
                     {/* AI Chip Visualization */}
-                    <div className='w-full max-w-5xl mb-16'>
+                    <div className='w-full'>
                         <AIChipVisualization />
                     </div>
 
-                    {/* Strategy Details */}
-                    <div className='max-w-2xl w-full space-y-8 mb-12'>
-                        <div>
-                            <h2 className='text-xl font-semibold text-gray-300 mb-4'>Objective</h2>
-                            <p className='text-gray-400 leading-relaxed'>
-                                Build an autonomous compounding strategy using XOXNO's xLend as the lending core.
-                            </p>
+                    {/* Strategy Stats */}
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-3xl'>
+                        <div className='bg-gradient-to-br from-gray-900/80 to-black/80 backdrop-blur-sm border border-gray-800 rounded-xl p-6 text-center'>
+                            <Zap className='w-8 h-8 text-amber-400 mx-auto mb-3' />
+                            <div className='text-2xl font-bold text-amber-400'>2.5x</div>
+                            <div className='text-sm text-gray-400 mt-1'>Leverage</div>
                         </div>
-
-                        <div>
-                            <h2 className='text-xl font-semibold text-gray-300 mb-4'>Key Requirements</h2>
-                            <ul className='space-y-3 text-gray-400'>
-                                <li className='flex items-start gap-3'>
-                                    <span className='text-emerald-400 mt-1'>•</span>
-                                    <span>Accept xEGLD deposits from users</span>
-                                </li>
-                                <li className='flex items-start gap-3'>
-                                    <span className='text-emerald-400 mt-1'>•</span>
-                                    <span>Issue a meta ESDT representing each user's proportional share</span>
-                                </li>
-                                <li className='flex items-start gap-3'>
-                                    <span className='text-emerald-400 mt-1'>•</span>
-                                    <span>Aggregate deposits into a single onchain position</span>
-                                </li>
-                                <li className='flex items-start gap-3'>
-                                    <span className='text-emerald-400 mt-1'>•</span>
-                                    <span>Use the position as collateral in xLend</span>
-                                </li>
-                                <li className='flex items-start gap-3'>
-                                    <span className='text-emerald-400 mt-1'>•</span>
-                                    <span>Borrow stablecoins (e.g. USDC) against the collateral</span>
-                                </li>
-                                <li className='flex items-start gap-3'>
-                                    <span className='text-emerald-400 mt-1'>•</span>
-                                    <span>Use borrowed funds to buy EGLD</span>
-                                </li>
-                                <li className='flex items-start gap-3'>
-                                    <span className='text-emerald-400 mt-1'>•</span>
-                                    <span>Stake EGLD back into xEGLD</span>
-                                </li>
-                                <li className='flex items-start gap-3'>
-                                    <span className='text-emerald-400 mt-1'>•</span>
-                                    <span>Re-supply xEGLD to compound the position</span>
-                                </li>
-                            </ul>
+                        <div className='bg-gradient-to-br from-gray-900/80 to-black/80 backdrop-blur-sm border border-gray-800 rounded-xl p-6 text-center'>
+                            <TrendingUp className='w-8 h-8 text-emerald-400 mx-auto mb-3' />
+                            <div className='text-2xl font-bold text-emerald-400'>15-25%</div>
+                            <div className='text-sm text-gray-400 mt-1'>Target APY</div>
+                        </div>
+                        <div className='bg-gradient-to-br from-gray-900/80 to-black/80 backdrop-blur-sm border border-gray-800 rounded-xl p-6 text-center'>
+                            <Shield className='w-8 h-8 text-blue-400 mx-auto mb-3' />
+                            <div className='text-2xl font-bold text-blue-400'>Auto</div>
+                            <div className='text-sm text-gray-400 mt-1'>Rebalancing</div>
                         </div>
                     </div>
 
-                    {/* CTA Button */}
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className='group relative px-12 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full text-lg font-semibold hover:from-emerald-400 hover:to-emerald-500 transition-all shadow-lg shadow-emerald-500/50 hover:shadow-emerald-400/60'
-                    >
-                        <span className='relative z-10'>Deploy Strategy</span>
-                        <div className='absolute inset-0 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 opacity-0 group-hover:opacity-100 blur-xl transition-opacity' />
-                    </button>
-                </div>
-
-                {/* Deployment Modal */}
-                {isModalOpen && (
-                    <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm'>
-                        <div className='relative w-full max-w-md bg-gradient-to-b from-gray-900 to-black border border-gray-800 rounded-2xl p-8 shadow-2xl'>
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className='absolute top-4 right-4 text-gray-400 hover:text-white transition-colors'
-                            >
-                                <X size={24} />
-                            </button>
-
-                            <h2 className='text-2xl font-bold mb-6 text-center'>Deploy Your Strategy</h2>
-
-                            <div className='space-y-6'>
-                                <div>
-                                    <label className='block text-sm text-gray-400 mb-2'>Deposit Amount (xEGLD)</label>
+                    {/* Deposit Input & CTA */}
+                    <div className='w-full max-w-md space-y-4'>
+                        <div className='bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-sm border border-gray-800 rounded-2xl p-6 space-y-4'>
+                            <label className='block'>
+                                <span className='text-sm text-gray-400 mb-2 block'>Deposit Amount</span>
+                                <div className='relative'>
                                     <input
                                         type='number'
                                         value={depositAmount}
                                         onChange={(e) => setDepositAmount(e.target.value)}
-                                        className='w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg text-white focus:border-emerald-500 focus:outline-none transition-colors'
-                                        placeholder='1000'
+                                        placeholder='0.00'
+                                        className='w-full bg-black/50 border border-gray-700 rounded-lg px-4 py-4 text-2xl font-semibold text-white placeholder-gray-600 focus:border-amber-500 focus:outline-none transition-colors'
                                     />
+                                    <span className='absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium'>xEGLD</span>
                                 </div>
+                            </label>
 
-                                <div className='bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-2'>
-                                    <div className='flex justify-between text-sm'>
-                                        <span className='text-gray-400'>Target APY</span>
-                                        <span className='text-emerald-400 font-semibold'>~15-25%</span>
-                                    </div>
-                                    <div className='flex justify-between text-sm'>
-                                        <span className='text-gray-400'>Leverage</span>
-                                        <span className='text-white font-semibold'>2.5x</span>
-                                    </div>
-                                    <div className='flex justify-between text-sm'>
-                                        <span className='text-gray-400'>Risk Level</span>
-                                        <span className='text-amber-400 font-semibold'>Moderate</span>
-                                    </div>
+                            <button
+                                onClick={handleDeploy}
+                                disabled={!depositAmount || isDeploying}
+                                className='group w-full relative bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed rounded-xl py-4 font-semibold text-lg transition-all duration-300 shadow-lg shadow-amber-500/20 hover:shadow-amber-400/40 disabled:shadow-none'
+                            >
+                                <span className='relative z-10 flex items-center justify-center gap-2'>
+                                    {isDeploying ? (
+                                        <>
+                                            <div className='w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin' />
+                                            Deploying...
+                                        </>
+                                    ) : (
+                                        <>
+                                            Deploy Strategy
+                                            <ArrowRight className='w-5 h-5 group-hover:translate-x-1 transition-transform' />
+                                        </>
+                                    )}
+                                </span>
+                                <div className='absolute inset-0 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 opacity-0 group-hover:opacity-100 blur-xl transition-opacity -z-10' />
+                            </button>
+                        </div>
+
+                        {/* How it Works - Compact */}
+                        <div className='text-center text-sm text-gray-500'>
+                            <details className='cursor-pointer'>
+                                <summary className='hover:text-gray-400 transition-colors'>How does it work?</summary>
+                                <div className='mt-4 text-left space-y-2 text-xs'>
+                                    <p>• Your xEGLD is used as collateral in lending protocols</p>
+                                    <p>• AI borrows stablecoins against your position</p>
+                                    <p>• Borrowed funds buy more EGLD, which is staked</p>
+                                    <p>• New xEGLD is re-supplied to compound the loop</p>
+                                    <p>• Fully autonomous - no manual intervention needed</p>
                                 </div>
-
-                                <button className='w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg text-lg font-semibold hover:from-emerald-400 hover:to-emerald-500 transition-all shadow-lg shadow-emerald-500/30'>
-                                    Confirm & Deploy
-                                </button>
-
-                                <p className='text-xs text-gray-500 text-center'>
-                                    By deploying, you agree to the autonomous strategy execution and associated risks.
-                                </p>
-                            </div>
+                            </details>
                         </div>
                     </div>
-                )}
 
-                {/* Background Gradient */}
-                <div className='absolute inset-0 bg-gradient-radial from-emerald-900/10 via-transparent to-transparent pointer-events-none' />
+                </div>
             </div>
         </AuthRedirectWrapper>
     );
