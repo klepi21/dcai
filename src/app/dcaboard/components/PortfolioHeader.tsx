@@ -89,6 +89,23 @@ export function PortfolioHeader({ totalPortfolio, onOpenOnboarding }: PortfolioH
               )}
             </div>
           </div>
+
+          <div className='flex flex-col gap-3 mb-2 md:mb-5 ml-2 md:ml-4'>
+            <div className='flex items-center gap-3'>
+              <div className='relative flex h-2 w-2'>
+                <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75'></span>
+                <span className='relative inline-flex rounded-full h-2 w-2 bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]'></span>
+              </div>
+              <span className='text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--gray-300)/0.8)]'>DCAi Bot Active</span>
+            </div>
+            <div className='flex items-center gap-3'>
+              <div className='relative flex h-2 w-2'>
+                <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75'></span>
+                <span className='relative inline-flex rounded-full h-2 w-2 bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]'></span>
+              </div>
+              <span className='text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--gray-300)/0.8)]'>Take Profit Bot Active</span>
+            </div>
+          </div>
         </div>
 
         <img
