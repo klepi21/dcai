@@ -59,6 +59,33 @@ export default function TestPage() {
                         </div>
                     </div>
 
+                    {/* Current Position Display */}
+                    <div className='w-full max-w-md'>
+                        <div className='bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-sm border border-gray-800 rounded-2xl p-6'>
+                            <h3 className='text-sm font-semibold text-gray-400 mb-4 uppercase tracking-wider'>Your Position</h3>
+                            <div className='space-y-3'>
+                                <div className='flex justify-between items-center'>
+                                    <span className='text-gray-400 text-sm'>Deposited</span>
+                                    <span className='text-white font-semibold'>0.00 xEGLD</span>
+                                </div>
+                                <div className='flex justify-between items-center'>
+                                    <span className='text-gray-400 text-sm'>Current Value</span>
+                                    <span className='text-emerald-400 font-semibold'>$0.00</span>
+                                </div>
+                                <div className='flex justify-between items-center'>
+                                    <span className='text-gray-400 text-sm'>Current APY</span>
+                                    <span className='text-amber-400 font-semibold'>0.00%</span>
+                                </div>
+                                <div className='pt-3 border-t border-gray-800'>
+                                    <div className='flex justify-between items-center'>
+                                        <span className='text-gray-400 text-sm'>Total Profit</span>
+                                        <span className='text-white font-bold'>$0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Deposit Input & CTA */}
                     <div className='w-full max-w-md space-y-4'>
                         <div className='bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-sm border border-gray-800 rounded-2xl p-6 space-y-4'>

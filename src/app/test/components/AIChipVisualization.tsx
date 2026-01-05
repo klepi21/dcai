@@ -16,7 +16,7 @@ const AIChipVisualization = () => {
       const dpr = Math.min(window.devicePixelRatio, 2); // Cap at 2x for performance
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
+      canvas.height = rect * dpr;
       ctx.scale(dpr, dpr);
     };
     updateSize();
@@ -54,13 +54,14 @@ const AIChipVisualization = () => {
     const chipWidth = 100;
     const chipHeight = 100;
     const nodeY = 420;
-    const nodeSpacing = 120;
+    const nodeSpacing = 140;
+
+    // Updated nodes with flow labels
     const nodes = [
-      { x: centerX - nodeSpacing * 2, y: nodeY, label: '15%' },
-      { x: centerX - nodeSpacing, y: nodeY, label: '25%' },
-      { x: centerX, y: nodeY, label: '40%' },
-      { x: centerX + nodeSpacing, y: nodeY, label: '10%' },
-      { x: centerX + nodeSpacing * 2, y: nodeY, label: '10%' }
+      { x: centerX - nodeSpacing * 1.5, y: nodeY, label: 'Supply', sublabel: 'xEGLD' },
+      { x: centerX - nodeSpacing * 0.5, y: nodeY, label: 'Borrow', sublabel: 'USDC' },
+      { x: centerX + nodeSpacing * 0.5, y: nodeY, label: 'Buy', sublabel: 'EGLD' },
+      { x: centerX + nodeSpacing * 1.5, y: nodeY, label: 'Stake', sublabel: 'xEGLD' }
     ];
 
     // Create light segments (1 per wire for performance)
@@ -94,7 +95,7 @@ const AIChipVisualization = () => {
         ctx.beginPath();
         ctx.moveTo(centerX, centerY + chipHeight / 2);
         const controlY = centerY + chipHeight / 2 + 80;
-        ctx.quadraticCurveTo(node.x, controlY, node.x, node.y - 25);
+        ctx.quadraticCurveTo(node.x, controlY, node.x, node.y - 30);
         ctx.stroke();
       });
 
@@ -107,7 +108,7 @@ const AIChipVisualization = () => {
 
         // Draw gradient line segment
         const steps = 12; // Reduced from 20
-        const gradient = ctx.createLinearGradient(centerX, centerY, node.x, node.y);
+        // const gradient = ctx.createLinearGradient(centerX, centerY, node.x, node.y); // This line is not used
 
         for (let i = 0; i < steps; i++) {
           const t = segment.progress + (i / steps) * 0.15;
@@ -120,7 +121,7 @@ const AIChipVisualization = () => {
               node.x,
               controlY,
               node.x,
-              node.y - 25
+              node.y - 30
             );
 
             const edgeFade = Math.min(i / 3, (steps - i) / 3, 1);
@@ -138,7 +139,7 @@ const AIChipVisualization = () => {
                 node.x,
                 controlY,
                 node.x,
-                node.y - 25
+                node.y - 30
               );
 
               ctx.beginPath();
@@ -164,7 +165,7 @@ const AIChipVisualization = () => {
 
       // Chip text
       ctx.fillStyle = 'rgba(234, 179, 8, 0.95)';
-      ctx.font = '12px Inter';
+      ctx.font = 'bold 11px Inter';
       ctx.textAlign = 'center';
       ctx.fillText('AI AGENT', centerX, centerY + 3);
 
@@ -174,14 +175,20 @@ const AIChipVisualization = () => {
         ctx.strokeStyle = 'rgba(234, 179, 8, 0.5)';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(node.x, node.y, 24, 0, Math.PI * 2);
+        ctx.arc(node.x, node.y, 28, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = 'rgba(234, 179, 8, 0.9)';
-        ctx.font = '11px Inter';
+        // Main label
+        ctx.fillStyle = 'rgba(234, 179, 8, 0.95)';
+        ctx.font = 'bold 11px Inter';
         ctx.textAlign = 'center';
-        ctx.fillText(node.label, node.x, node.y + 38);
+        ctx.fillText(node.label, node.x, node.y - 2);
+
+        // Sublabel
+        ctx.fillStyle = 'rgba(234, 179, 8, 0.6)';
+        ctx.font = '9px Inter';
+        ctx.fillText(node.sublabel, node.x, node.y + 10);
       });
 
       animationFrame = requestAnimationFrame(draw);
