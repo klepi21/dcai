@@ -58,7 +58,7 @@ export function PortfolioHeader({ totalPortfolio, onOpenOnboarding }: PortfolioH
         </div>
 
         <div className='flex flex-col md:flex-row gap-4 items-end relative w-full overflow-visible'>
-          <div className='border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-5 shadow-sm md:w-1/2'>
+          <div className='border-2 border-[hsl(var(--gray-300)/0.3)] bg-[hsl(var(--background))] p-5 shadow-sm md:w-1/2 rounded-none'>
             <div className='flex items-start justify-between'>
               <div>
                 <h2 className='text-xs font-semibold uppercase tracking-[0.25em] text-[hsl(var(--sky-300)/0.9)]'>
@@ -73,7 +73,7 @@ export function PortfolioHeader({ totalPortfolio, onOpenOnboarding }: PortfolioH
               {address && (
                 <div className='flex flex-col items-end gap-1.5 pt-1'>
                   <span className='text-[10px] uppercase tracking-wider text-[hsl(var(--gray-300)/0.5)] font-semibold'>Wallet</span>
-                  <div className='flex items-center gap-2 px-2 py-1 bg-[hsl(var(--gray-300)/0.05)] border border-[hsl(var(--gray-300)/0.1)] rounded-none'>
+                  <div className='flex items-center gap-2 px-2 py-1 bg-[hsl(var(--gray-300)/0.05)] border border-[hsl(var(--gray-300)/0.1)] !rounded-none'>
                     <span className='text-[10px] font-mono text-[hsl(var(--gray-300)/0.9)]'>{truncateAddress(address)}</span>
                     <a
                       href={`${network.explorerAddress}/accounts/${address}`}
