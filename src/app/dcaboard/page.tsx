@@ -38,7 +38,7 @@ export default function DCABoard() {
   const [tokenMarketData, setTokenMarketData] = useState<Record<string, TokenMarketData>>({});
   const [token, setToken] = useState<string>('');
   const [frequency, setFrequency] = useState<string>('');
-  const [amountPerDca, setAmountPerDca] = useState<string>('');
+  const [amountPerDca, setAmountPerDca] = useState<string>('1.00');
   const [showTakeProfit, setShowTakeProfit] = useState<boolean>(false);
   const [takeProfitPct, setTakeProfitPct] = useState<string>('15');
   // State to track if form has been modified with AI suggestions
@@ -652,11 +652,6 @@ export default function DCABoard() {
             if (!frequency || !selectedSetup.allowedFrequencies.find(f => f.frequency === frequency)) {
               setFrequency(selectedSetup.allowedFrequencies[0].frequency);
             }
-          }
-
-          // Set default amount to 1 USDC (not the minimum)
-          if (!amountPerDca) {
-            setAmountPerDca('1.00');
           }
         }
 
