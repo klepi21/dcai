@@ -726,7 +726,8 @@ export default function DCABoard() {
   const handleAddStrategy = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const parsedAmount = Number(amountPerDca);
+    const normalizedAmount = amountPerDca.replace(',', '.');
+    const parsedAmount = Number(normalizedAmount);
     if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
       return;
     }
@@ -738,8 +739,8 @@ export default function DCABoard() {
       return;
     }
 
-    // Take profit is optional in UI but required in ABI (use 0 if not provided)
-    const parsedTakeProfit = showTakeProfit ? Number(takeProfitPct) : 0;
+    const normalizedTp = takeProfitPct.replace(',', '.');
+    const parsedTakeProfit = showTakeProfit ? Number(normalizedTp) : 0;
 
     // If form was modified by AI, skip analysis and create strategy directly
     if (isAiModified) {
@@ -897,13 +898,15 @@ export default function DCABoard() {
       return;
     }
 
-    const amountPerDca = parseFloat(modifyModal.amountPerDca);
+    const normalizedAmount = modifyModal.amountPerDca.replace(',', '.');
+    const amountPerDca = parseFloat(normalizedAmount);
     if (isNaN(amountPerDca) || amountPerDca <= 0) {
       return; // Validation handled in UI
     }
 
+    const normalizedTp = modifyModal.takeProfitPct.replace(',', '.');
     const takeProfitPct = modifyModal.showTakeProfit && modifyModal.takeProfitPct
-      ? parseFloat(modifyModal.takeProfitPct)
+      ? parseFloat(normalizedTp)
       : 0;
 
     try {
@@ -1101,7 +1104,8 @@ export default function DCABoard() {
       return;
     }
 
-    const amount = parseFloat(depositModal.amount);
+    const normalizedAmount = depositModal.amount.replace(',', '.');
+    const amount = parseFloat(normalizedAmount);
     if (isNaN(amount) || amount <= 0) {
       return; // Validation handled in UI
     }
@@ -1143,7 +1147,8 @@ export default function DCABoard() {
       return;
     }
 
-    const amount = parseFloat(withdrawModal.amount);
+    const normalizedAmount = withdrawModal.amount.replace(',', '.');
+    const amount = parseFloat(normalizedAmount);
     if (isNaN(amount) || amount <= 0) {
       return; // Validation handled in UI
     }
