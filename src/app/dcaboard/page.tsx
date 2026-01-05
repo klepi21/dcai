@@ -162,7 +162,7 @@ export default function DCABoard() {
       const apiUrl = getApiUrl(network);
 
       // ONE API call to get all Meta ESDT tokens
-      const tokensUrl = `${apiUrl}/accounts/${address}/tokens?includeMetaESDT=true`;
+      const tokensUrl = `${apiUrl}/accounts/${address}/tokens?includeMetaESDT=true&size=200`;
 
       const response = await fetch(tokensUrl, {
         method: 'GET',
