@@ -13,10 +13,10 @@ const AIChipVisualization = () => {
 
     // Set canvas size
     const updateSize = () => {
-      const dpr = Math.min(window.devicePixelRatio, 2); // Cap at 2x for performance
+      const dpr = Math.min(window.devicePixelRatio, 2);
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * dpr;
-      canvas.height = rect * dpr;
+      canvas.height = rect.height * dpr;
       ctx.scale(dpr, dpr);
     };
     updateSize();
