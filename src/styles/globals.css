@@ -10,16 +10,16 @@
   }
 }
 
-.mx-transactions > td {
+.mx-transactions>td {
   @apply p-2;
 }
 
-.mx-transactions td > span,
-.mx-transactions td > div {
+.mx-transactions td>span,
+.mx-transactions td>div {
   @apply flex w-max;
 }
 
-.mx-transactions td > div > a {
+.mx-transactions td>div>a {
   @apply text-blue-600;
 }
 
@@ -33,6 +33,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -47,6 +48,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -86,6 +88,7 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
   .dark {
     --background: 0 0% 9%;
     --foreground: 0 0% 98%;
@@ -120,7 +123,41 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.sloth-background-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image:
+    url('/assets/img/sloth.png'),
+    url('/assets/img/slothyoga.png'),
+    url('/assets/img/hodloth.png'),
+    url('/assets/img/slothclap.png'),
+    url('/assets/img/slothengine.png');
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position:
+    10% 10%,
+    85% 20%,
+    15% 75%,
+    80% 85%,
+    50% 50%;
+  background-size:
+    180px auto,
+    220px auto,
+    200px auto,
+    240px auto,
+    210px auto;
+  filter: grayscale(1);
+}
+
+.dark .sloth-background-layer {
+  opacity: 0.06;
+  filter: grayscale(1) invert(1);
 }

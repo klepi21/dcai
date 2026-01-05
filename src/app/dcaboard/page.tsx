@@ -1225,6 +1225,7 @@ export default function DCABoard() {
 
   return (
     <div className='flex w-full justify-center overflow-visible relative'>
+      <div className="sloth-background-layer" />
       <div className='flex w-full max-w-6xl flex-col gap-12 bg-background text-foreground overflow-visible'>
         <PortfolioHeader
           totalPortfolio={totalPortfolio}
