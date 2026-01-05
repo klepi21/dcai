@@ -223,7 +223,7 @@ export function ActiveStrategiesList({
 
                     {/* Warning message for insufficient balance */}
                     {(currentStrategy.availableUsdc === 0 || currentStrategy.availableUsdc < currentStrategy.amountPerDca) && (
-                      <div className='flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs'>
+                      <div className='flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-none text-xs'>
                         <AlertTriangle className='w-4 h-4 text-yellow-500 flex-shrink-0' />
                         <span className='text-yellow-600 dark:text-yellow-400'>
                           {currentStrategy.availableUsdc === 0
