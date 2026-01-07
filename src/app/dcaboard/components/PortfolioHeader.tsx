@@ -105,6 +105,13 @@ export function PortfolioHeader({ totalPortfolio, onOpenOnboarding }: PortfolioH
               </div>
               <span className='text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--gray-300)/0.8)]'>Take Profit Bot Active</span>
             </div>
+            <div className='flex items-center gap-3'>
+              <div className='relative flex h-2 w-2'>
+                <span className='animate-ping absolute inline-flex h-full w-full rounded-none bg-[hsl(var(--sky-300))] opacity-75'></span>
+                <span className='relative inline-flex rounded-none h-2 w-2 bg-[hsl(var(--sky-300))] shadow-[0_0_8px_hsl(var(--sky-300)/0.8)]'></span>
+              </div>
+              <span className='text-[10px] font-bold uppercase tracking-widest text-[hsl(var(--sky-300))]'>Hodloth AI Agent Active</span>
+            </div>
           </div>
         </div>
 
