@@ -86,20 +86,20 @@ export function ActiveStrategiesList({
               onClick={() => onToggleGroup(groupKey)}
               className='w-full flex items-center justify-between p-4 text-left hover:bg-[hsl(var(--gray-300)/0.05)] transition-colors'
             >
-              <div className='flex items-center gap-2'>
-                {headerStrategy?.tokenLogo ? (
+              <div className='flex items-center gap-3'>
+                {headerStrategy?.strategyTokenLogo && (
                   <Image
-                    src={headerStrategy.tokenLogo}
-                    alt={token}
-                    width={24}
-                    height={24}
-                    className='rounded-full'
+                    src={headerStrategy.strategyTokenLogo}
+                    alt={`${token} Strategy`}
+                    width={48}
+                    height={48}
+                    className='rounded-full border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))]'
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
                     }}
                   />
-                ) : null}
+                )}
                 <div className='flex flex-col'>
                   <div className='flex items-center gap-2'>
                     <span className='font-medium text-sm'>
@@ -178,14 +178,14 @@ export function ActiveStrategiesList({
 
                   <div className={`flex flex-col gap-3 text-sm ${pendingStrategyIds.has(currentStrategy.id) ? 'opacity-40 grayscale-[0.5]' : ''}`}>
                     <div className='flex items-center justify-between'>
-                      <div className='flex items-center gap-2'>
-                        {currentStrategy.tokenLogo && (
+                      <div className='flex items-center gap-3'>
+                        {currentStrategy.strategyTokenLogo && (
                           <Image
-                            src={currentStrategy.tokenLogo}
-                            alt={currentStrategy.token}
-                            width={24}
-                            height={24}
-                            className='rounded-full'
+                            src={currentStrategy.strategyTokenLogo}
+                            alt={`${currentStrategy.token} Strategy`}
+                            width={48}
+                            height={48}
+                            className='rounded-full border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))]'
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';

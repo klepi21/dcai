@@ -21,6 +21,7 @@ export interface DcaStrategy {
   tokenIdentifier: string; // Strategy token identifier (e.g., DCAIHTM-cffd95-01)
   dcaTokenIdentifier?: string; // Actual DCA token identifier (e.g., HTM-abdfrg)
   tokenLogo?: string;
+  strategyTokenLogo?: string;
   frequency: string;
   amountPerDca: number;
   takeProfitPct?: number;

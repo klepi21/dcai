@@ -288,6 +288,7 @@ export default function DCABoard() {
               tokenIdentifier: identifier, // Strategy token identifier (e.g., DCAIHTM-cffd95-01)
               dcaTokenIdentifier: matchingSetup?.dcaToken || tokenFromList?.identifier || iconIdentifier, // Actual DCA token identifier (e.g., HTM-abdfrg)
               tokenLogo: `https://tools.multiversx.com/assets-cdn/${networkPathForImages}/tokens/${iconIdentifier}/icon.png`,
+              strategyTokenLogo: `https://tools.multiversx.com/assets-cdn/${networkPathForImages}/tokens/${collection}/icon.png`,
               frequency: attributes.dcaFrequency || 'Unknown',
               amountPerDca: amountPerSwap,
               takeProfitPct: takeProfitPercentage > 0 ? takeProfitPercentage : undefined,

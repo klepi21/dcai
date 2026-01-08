@@ -1,5 +1,6 @@
 'use client';
 import Image from 'next/image';
+import { ZenSloth } from './ZenSloth';
 import { ActivityItem } from '../types';
 import { formatTimeAgo } from '../utils/formatTime';
 
@@ -30,75 +31,68 @@ export function ActivityFeed({
             Latest DCAi Activity
           </h2>
           <div className='flex flex-col gap-3'>
-        {activities.length === 0 ? (
-          <p className='text-sm text-[hsl(var(--gray-300)/0.7)]'>
-            No activity yet. Your DCAi transactions will appear here.
-          </p>
-        ) : (
-          <>
-            {/* Activity items */}
-            <div className='flex flex-col gap-3'>
-              {currentActivities.map((activity, index) => {
-                const isLast = index === currentActivities.length - 1;
+            {activities.length === 0 ? (
+              <p className='text-sm text-[hsl(var(--gray-300)/0.7)]'>
+                No activity yet. Your DCAi transactions will appear here.
+              </p>
+            ) : (
+              <>
+                {/* Activity items */}
+                <div className='flex flex-col gap-3'>
+                  {currentActivities.map((activity, index) => {
+                    const isLast = index === currentActivities.length - 1;
 
-                return (
-                  <div
-                    key={`${activity.type}-${activity.timestamp}-${startIndex + index}`}
-                    className={`flex items-center gap-3 ${!isLast ? 'border-b border-[hsl(var(--gray-300)/0.1)] pb-3' : ''} text-sm`}
-                  >
-                    <div className='flex h-8 w-8 items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.9)]'>
-                      <span className='text-xs'>{activity.icon}</span>
-                    </div>
-                    <div className='flex-1'>
-                      <p className='font-medium'>{activity.title}</p>
-                      <p className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                        {activity.description} • {formatTimeAgo(activity.timestamp)}
-                      </p>
-                    </div>
+                    return (
+                      <div
+                        key={`${activity.type}-${activity.timestamp}-${startIndex + index}`}
+                        className={`flex items-center gap-3 ${!isLast ? 'border-b border-[hsl(var(--gray-300)/0.1)] pb-3' : ''} text-sm`}
+                      >
+                        <div className='flex h-8 w-8 items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] text-[hsl(var(--gray-300)/0.9)]'>
+                          <span className='text-xs'>{activity.icon}</span>
+                        </div>
+                        <div className='flex-1'>
+                          <p className='font-medium'>{activity.title}</p>
+                          <p className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
+                            {activity.description} • {formatTimeAgo(activity.timestamp)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Pagination controls */}
+                {totalPages > 1 && (
+                  <div className='flex items-center justify-between pt-3 border-t border-[hsl(var(--gray-300)/0.1)]'>
+                    <button
+                      type='button'
+                      onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                      className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
+                    >
+                      Previous
+                    </button>
+                    <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      type='button'
+                      onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                      className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
+                    >
+                      Next
+                    </button>
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Pagination controls */}
-            {totalPages > 1 && (
-              <div className='flex items-center justify-between pt-3 border-t border-[hsl(var(--gray-300)/0.1)]'>
-                <button
-                  type='button'
-                  onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
-                >
-                  Previous
-                </button>
-                <span className='text-xs text-[hsl(var(--gray-300)/0.7)]'>
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button
-                  type='button'
-                  onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className='inline-flex items-center justify-center border border-[hsl(var(--gray-300)/0.2)] bg-[hsl(var(--background))] px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-[hsl(var(--sky-300)/0.5)] hover:bg-[hsl(var(--gray-300)/0.05)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[hsl(var(--gray-300)/0.2)] disabled:hover:bg-[hsl(var(--background))]'
-                >
-                  Next
-                </button>
-              </div>
+                )}
+              </>
             )}
-          </>
-        )}
           </div>
         </div>
 
-        {/* Sloth yoga image on the right - bigger */}
-        <div className='flex pointer-events-none flex-shrink-0 w-full pt-24 md:w-1/2 items-center justify-center mt-4 md:mt-0'>
-          <Image
-            src='/assets/img/slothyoga.png'
-            alt='DCAi sloth yoga'
-            width={400}
-            height={400}
-            className='object-contain'
-            style={{ maxWidth: '400px', width: '100%', height: 'auto' }}
-          />
+        {/* Sloth yoga image on the right - with rainbow animation */}
+        <div className='flex pointer-events-none flex-shrink-0 w-full pt-12 md:w-1/2 items-center justify-center mt-4 md:mt-0'>
+          <ZenSloth />
         </div>
       </div>
     </section>
