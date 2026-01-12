@@ -77,6 +77,23 @@ This project is built with a modern, high-performance stack:
 
 ---
 
+## 🗺️ Roadmap & Future Vision
+
+To further revolutionize the DCA experience, our roadmap includes critical DeFi integrations and advanced AI features:
+
+### 🔗 DeFi Integrations (The "Idle Assets" Solution)
+-   **Valoro Token Integration**: Expanding our strategy ecosystem to include Valoro tokens.
+-   **Yield-Bearing Idle USDC**: Integration with **Hatom** and **XOXNO** lending pools. Your USDC waiting to be deployed shouldn't sit idle; it should earn APY until the moment it's swapped.
+-   **Automated Staking**: Once your target tokens are purchased, they will be automatically staked or supplied to lending protocols (Hatom/XOXNO) to compound yields while waiting for the Take-Profit target.
+
+### 🚀 Planned Expansions
+-   **Smart Volatility Scaling**: AI-enhanced logic that dynamically adjusts buy amounts based on real-time market volatility (buying more during aggressive dips).
+-   **Notification Hub**: Real-time alerts via Email or Telegram for every buy, sell, and take-profit execution.
+-   **Advanced Portfolio Analytics**: Deep dive into your performance with ROI charts, average entry visualization, and historical trade analysis.
+-   **Fiat On-Ramp**: Direct fiat-to-USDC deposits to streamline the user onboarding process.
+
+---
+
 ## 🏁 Getting Started
 
 Clone the repository and run the development server locally:
