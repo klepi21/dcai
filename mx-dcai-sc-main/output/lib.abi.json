@@ -1,0 +1,934 @@
+{
+    "buildInfo": {
+        "rustc": {
+            "version": "1.91.1",
+            "commitHash": "ed61e7d7e242494fb7057f2657300d9e77bb4fcb",
+            "commitDate": "2025-11-07",
+            "channel": "Stable",
+            "host": "x86_64-unknown-linux-gnu",
+            "short": "rustc 1.91.1 (ed61e7d7e 2025-11-07)",
+            "llvmVersion": "21.1"
+        },
+        "contractCrate": {
+            "name": "lib",
+            "version": "0.0.1"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.64.0"
+        }
+    },
+    "name": "Dcai",
+    "constructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "name": "addAdmins",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addresses",
+                    "type": "variadic<Address>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "removeAdmins",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "addresses",
+                    "type": "variadic<Address>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "isAdmin",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getAdmins",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "variadic<Address>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "pause",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "unpause",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "isPaused",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getUsdcIdentifier",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "TokenIdentifier"
+                }
+            ]
+        },
+        {
+            "name": "getWegldIdentifier",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "TokenIdentifier"
+                }
+            ]
+        },
+        {
+            "name": "getXexchangeRouterScAddress",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "getWrapperScAddress",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "setBotAddress",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Endpoint executed by the bot to perform buy operations for multiple DCA strategies.",
+                "",
+                "Parameters:",
+                "- `nonces`: A list of nonces representing the DCA strategies to execute.",
+                "",
+                "The bot checks each strategy to see if it is eligible for execution based on the USDC balance,",
+                "the last executed timestamp, and the defined frequency. If eligible, it aggregates the total amount to swap,",
+                "performs the swap, and updates each strategy's attributes accordingly.",
+                "",
+                "It will skip strategies that do not meet the criteria and will return any",
+                "dust amount to the caller. It will fail only if no strategies at all are eligible for execution."
+            ],
+            "name": "buy",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "nonces",
+                    "type": "variadic<u64>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Endpoint executed by the bot to perform take profit operations for multiple DCA strategies.",
+                "",
+                "Parameters:",
+                "- `nonces`: A list of nonces representing the DCA strategies to evaluate for take profit.",
+                "",
+                "The bot checks each strategy to see if the take profit condition is met based on the",
+                "DCA token balance and the defined take profit percentage. If the condition is met,",
+                "it aggregates the total amount to swap, performs the swap, deducts any applicable profit",
+                "fees, and updates each strategy's attributes accordingly.",
+                "",
+                "It will skip strategies that do not meet the take profit condition and will return any",
+                "dust amount to the caller. It will fail only if no strategies at all are eligible for take profit."
+            ],
+            "name": "takeProfit",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "nonces",
+                    "type": "variadic<u64>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Returns true if the given address can execute bot operations.",
+                "",
+                "This includes the bot address and any admin addresses (as a fallback mechanism)."
+            ],
+            "name": "isBot",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "address",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "getBotAddress",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "setup",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "dca_token",
+                    "type": "EgldOrEsdtTokenIdentifier"
+                },
+                {
+                    "name": "strategy_token_ticker",
+                    "type": "bytes"
+                },
+                {
+                    "name": "strategy_token_display_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "min_amount_per_swap",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "profit_fee_percentage",
+                    "type": "u64"
+                },
+                {
+                    "name": "allowed_frequencies",
+                    "type": "variadic<multi<bytes,u64>>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setToken",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "dca_token",
+                    "type": "EgldOrEsdtTokenIdentifier"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setMinAmountPerSwap",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "min_amount_per_swap",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "addAllowedFrequencies",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "frequencies",
+                    "type": "variadic<multi<bytes,u64>>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "removeAllowedFrequencies",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "frequencies",
+                    "type": "variadic<bytes>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setProfitFeePercentage",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "profit_fee_percentage",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setCustomSlippagePercentage",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "custom_slippage_percentage",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "View to get the DCA setup parameters.",
+                "",
+                "Returns a `DcaSetup` multi-value containing:",
+                "1. The DCA token identifier.",
+                "1. The minimum amount per swap.",
+                "1. The strategy token identifier.",
+                "1. The profit fee percentage.",
+                "1. The final slippage percentage to be used in swaps (either custom or default).",
+                "1. The allowed frequencies as a multi-value encoded of `DcaFrequencyInMillis` (frequency string and duration in millis)."
+            ],
+            "name": "getSetup",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "EgldOrEsdtTokenIdentifier"
+                },
+                {
+                    "type": "BigUint"
+                },
+                {
+                    "type": "TokenIdentifier"
+                },
+                {
+                    "type": "u64"
+                },
+                {
+                    "type": "u64"
+                },
+                {
+                    "type": "bool"
+                },
+                {
+                    "type": "variadic<Address>",
+                    "multi_result": true
+                },
+                {
+                    "type": "variadic<multi<bytes,u64>>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Endpoint to create a new DCA strategy.",
+                "",
+                "### Arguments",
+                "* `amount_per_swap` - The amount of USDC to be swapped in each DCA operation.",
+                "* `frequency` - The frequency at which DCA operations are executed (e.g., daily, weekly).",
+                "* `take_profit_percentage` - The percentage at which to take profit from DCA operations."
+            ],
+            "name": "createStrategy",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "amount_per_swap",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "frequency",
+                    "type": "bytes"
+                },
+                {
+                    "name": "take_profit_percentage",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Endpoint to modify an existing DCA strategy.",
+                "The endpoint is payable and requires the transfer of the strategy token NFT to identify the strategy.",
+                "",
+                "### Arguments",
+                "* `amount_per_swap` - The new amount of USDC to be swapped in each DCA operation.",
+                "* `frequency` - The new frequency at which DCA operations are executed (e.g., daily, weekly).",
+                "* `take_profit_percentage` - The new percentage at which to take profit from DCA operations."
+            ],
+            "name": "modifyStrategy",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "amount_per_swap",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "frequency",
+                    "type": "bytes"
+                },
+                {
+                    "name": "take_profit_percentage",
+                    "type": "u64"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Endpoint to delete a DCA strategy.",
+                "The endpoint is payable and requires the transfer of the strategy token NFT to identify the strategy."
+            ],
+            "name": "deleteStrategy",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Endpoint to deposit USDC into a strategy.",
+                "The endpoint is payable and requires the transfer of the strategy token NFT to identify the strategy."
+            ],
+            "name": "deposit",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Endpoint to withdraw USDC or DCA tokens from a strategy.",
+                "The endpoint is payable and requires the transfer of the strategy token NFT to identify the strategy.",
+                "",
+                "### Arguments",
+                "* `amount` - The amount to withdraw.",
+                "* `token_withdrawn` - An enum indicating whether to withdraw USDC or DCA tokens (1 for USDC, 2 for DCA token)."
+            ],
+            "name": "withdraw",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "token_withdrawn",
+                    "type": "TokenWithdrawn"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "View to get the strategy token attributes for a given nonce",
+                "",
+                "### Arguments",
+                "* `nonce` - The nonce of the strategy token NFT",
+                "",
+                "### Returns",
+                "A `StrategyTokenAttributesAsType` containing the attributes of the strategy token:",
+                "- `nonce`: The nonce of the strategy token NFT.",
+                "- `amount_per_swap`: The amount of USDC to be swapped in each DCA operation.",
+                "- `dca_frequency`: The frequency at which DCA operations are executed (e.g., daily, weekly).",
+                "- `frequency_in_millis`: The frequency in milliseconds for precise timing.",
+                "- `take_profit_percentage`: The percentage at which to take profit from DCA operations.",
+                "- `usdc_balance`: The current USDC balance allocated for DCA operations.",
+                "- `dca_token_balance`: The current balance of the token being acquired through DCA.",
+                "- `last_executed_ts_millis`: The timestamp in milliseconds of the last executed DCA operation.",
+                "- `take_profit_condition_met`: A boolean indicating whether the take profit condition is currently met (if applicable).",
+                "- `buys`: A list of executed buy operations, each represented by a `Swap` struct (including usdc amount, dca token amount, and timestamp).",
+                "- `sells`: A list of executed sell operations, each represented by a `Swap` struct (including usdc amount, dca token amount, and timestamp)."
+            ],
+            "name": "getStrategyTokenAttributes",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "nonce",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                },
+                {
+                    "type": "BigUint"
+                },
+                {
+                    "type": "bytes"
+                },
+                {
+                    "type": "u64"
+                },
+                {
+                    "type": "u64"
+                },
+                {
+                    "type": "BigUint"
+                },
+                {
+                    "type": "BigUint"
+                },
+                {
+                    "type": "u64"
+                },
+                {
+                    "type": "bool"
+                },
+                {
+                    "type": "List<Swap>"
+                },
+                {
+                    "type": "List<Swap>"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "View to get all strategies held by the smart contract.",
+                "",
+                "It iterates through all minted strategy token NFTs and collects the attributes of those",
+                "that have a balance greater than zero.",
+                "",
+                "### Returns",
+                "A `MultiValueEncoded` containing `StrategyTokenAttributesAsType` for each strategy.",
+                "",
+                "Each `StrategyTokenAttributesAsType` includes:",
+                "- `nonce`: The nonce of the strategy token NFT.",
+                "- `amount_per_swap`: The amount of USDC to be swapped in each DCA operation.",
+                "- `dca_frequency`: The frequency at which DCA operations are executed.",
+                "- `frequency_in_millis`: The frequency in milliseconds for precise timing.",
+                "- `take_profit_percentage`: The percentage at which to take profit from DCA operations.",
+                "- `usdc_balance`: The current USDC balance allocated for DCA operations.",
+                "- `dca_token_balance`: The current balance of the token being acquired through DCA.",
+                "- `last_executed_ts_millis`: The timestamp in milliseconds of the last executed buy or take profit operation.",
+                "- `take_profit_condition_met`: A boolean indicating whether the take profit condition is currently met (if applicable).",
+                "- `buys`: A list of executed buy operations, each represented by a `Swap` struct.",
+                "- `sells`: A list of executed sell operations, each represented by a `Swap` struct."
+            ],
+            "name": "getAllStrategies",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "variadic<multi<u64,BigUint,bytes,u64,u64,BigUint,BigUint,u64,bool,List<Swap>,List<Swap>>>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "View to get all strategy nonces held by the smart contract.",
+                "",
+                "It iterates through all minted strategy token NFTs and collects the nonces of those",
+                "that have a balance greater than zero.",
+                "",
+                "### Returns",
+                "A `MultiValueEncoded` containing the nonces of each strategy."
+            ],
+            "name": "getAllStrategiesOnlyNonces",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "variadic<u64>",
+                    "multi_result": true
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "identifier": "adminsAdded",
+            "inputs": [
+                {
+                    "name": "admins",
+                    "type": "variadic<Address>",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "adminsRemoved",
+            "inputs": [
+                {
+                    "name": "admins",
+                    "type": "variadic<Address>",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "paused",
+            "inputs": []
+        },
+        {
+            "identifier": "unpaused",
+            "inputs": []
+        },
+        {
+            "identifier": "botAddressSet",
+            "inputs": [
+                {
+                    "name": "bot",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "buyExecuted",
+            "inputs": [
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "usdc_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "dca_token_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "sellExecuted",
+            "inputs": [
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "dca_token_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "usdc_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "dcaTokenSet",
+            "inputs": [
+                {
+                    "name": "dca_token",
+                    "type": "EgldOrEsdtTokenIdentifier",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "minAmountPerSwapSet",
+            "inputs": [
+                {
+                    "name": "min_amount_per_swap",
+                    "type": "BigUint",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "allowedFrequenciesAdded",
+            "inputs": [
+                {
+                    "name": "allowed_frequencies",
+                    "type": "variadic<multi<bytes,u64>>",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "allowedFrequenciesRemoved",
+            "inputs": [
+                {
+                    "name": "allowed_frequencies",
+                    "type": "variadic<bytes>",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "strategyTokenCreated",
+            "inputs": [
+                {
+                    "name": "strategy_token",
+                    "type": "TokenIdentifier",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "profitFeePercentageSet",
+            "inputs": [
+                {
+                    "name": "profit_fee_percentage",
+                    "type": "u64",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "customSlippagePercentageSet",
+            "inputs": [
+                {
+                    "name": "custom_slippage_percentage",
+                    "type": "u64",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "strategyCreated",
+            "inputs": [
+                {
+                    "name": "creator",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "amount_per_swap",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "frequency",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "take_profit_percentage",
+                    "type": "u64",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "strategyModified",
+            "inputs": [
+                {
+                    "name": "modifier",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "amount_per_swap",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "frequency",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "take_profit_percentage",
+                    "type": "u64",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "strategyDeleted",
+            "inputs": [
+                {
+                    "name": "deleter",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "usdc_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "token_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "depositMade",
+            "inputs": [
+                {
+                    "name": "depositor",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "usdc_amount",
+                    "type": "BigUint",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "withdrawalMade",
+            "inputs": [
+                {
+                    "name": "withdrawer",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "token",
+                    "type": "EgldOrEsdtTokenIdentifier",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": true,
+    "types": {
+        "Swap": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "usdc_amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "dca_token_amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "timestamp_millis",
+                    "type": "u64"
+                }
+            ]
+        },
+        "TokenWithdrawn": {
+            "type": "enum",
+            "docs": [
+                "Token types that can be withdrawn"
+            ],
+            "variants": [
+                {
+                    "name": "Usdc",
+                    "discriminant": 1
+                },
+                {
+                    "name": "DcaToken",
+                    "discriminant": 2
+                }
+            ]
+        }
+    }
+}

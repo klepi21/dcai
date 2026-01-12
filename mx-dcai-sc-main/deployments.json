@@ -1,0 +1,42 @@
+{
+    "devnet": [
+        {
+            "address": "erd1qqqqqqqqqqqqqpgqp05xlsetvykpxchqm64q7xhrjfj07y4du7zsu9a7dj",
+            "label": "WEGLD"
+        },
+        {
+            "address": "erd1qqqqqqqqqqqqqpgq7elnvz7r2kgz2t3q8tq8xkwj32grqtkmu7zszjw8xd",
+            "label": "HTM"
+        },
+        {
+            "address": "erd1qqqqqqqqqqqqqpgql0k8wh9rnvwv3uswmc0a0qdfulmsj9cxu7zs36f99w",
+            "label": "EGLD"
+        },
+        {
+            "address": "erd1qqqqqqqqqqqqqpgq7xvljvkmjxeg6z7kav2k5l8hw0mg8pznu7zsstxfy6",
+            "label": "TEST"
+        }
+    ],
+    "mainnet": [
+        {
+            "address": "erd1qqqqqqqqqqqqqpgqz304m0s4684qj5fyh6rq8rqygywya4rzu7zsjy3crs",
+            "label": "EGLD"
+        },
+        {
+            "address": "erd1qqqqqqqqqqqqqpgqelvnfmn5h6u6pdlsvh2tevqrgkvvzfg2u7zsdzpprx",
+            "label": "XOXNO"
+        },
+        {
+            "address": "erd1qqqqqqqqqqqqqpgqhs7d3xgx9levn9etpwtu5y4d0ycw3kqlu7zsy7jj8x",
+            "label": "MEX"
+        },
+        {
+            "address": "erd1qqqqqqqqqqqqqpgqyjm92p8egav74tn02u886e4gjwxalslmu7zsanc7qn",
+            "label": "A1X"
+        },
+        {
+            "address": "erd1qqqqqqqqqqqqqpgqshdkh3g7smvxkxxw4349576nm4nuvh9du7zspz2dl5",
+            "label": "HTM"
+        }
+    ]
+}

@@ -1,0 +1,4 @@
+[settings]
+
+[[proxy]]
+path = "../mx-dcai-parent-sc/src/dca_template_proxy.rs"
